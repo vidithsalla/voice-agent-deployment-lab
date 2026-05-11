@@ -1,0 +1,12 @@
+{
+  "id": "30-unknown-caller-vendor",
+  "transcript": "Has Kumar Traders been paid?",
+  "callerPhone": "+15559990004",
+  "expectedIntent": "check_vendor_payment",
+  "expectedFields": { "vendorName": "Kumar Traders" },
+  "expectedAction": "check_vendor_payment",
+  "expectedGuardrails": ["unknown_caller"],
+  "shouldCreateRequisition": false,
+  "shouldCreateApproval": false,
+  "shouldCreateEscalation": false
+}

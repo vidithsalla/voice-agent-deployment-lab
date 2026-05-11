@@ -1,0 +1,12 @@
+{
+  "id": "11-vendor-authorized-procurement",
+  "transcript": "Has Kumar Traders been paid?",
+  "callerPhone": "+15550000002",
+  "expectedIntent": "check_vendor_payment",
+  "expectedFields": { "vendorName": "Kumar Traders" },
+  "expectedAction": "check_vendor_payment",
+  "expectedGuardrails": [],
+  "shouldCreateRequisition": false,
+  "shouldCreateApproval": false,
+  "shouldCreateEscalation": false
+}

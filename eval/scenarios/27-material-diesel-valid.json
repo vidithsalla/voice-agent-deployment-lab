@@ -1,0 +1,12 @@
+{
+  "id": "27-material-diesel-valid",
+  "transcript": "This is Anita from Site A. We need 5 barrels of diesel tomorrow morning.",
+  "callerPhone": "+15550000002",
+  "expectedIntent": "create_material_request",
+  "expectedFields": { "siteName": "Site A", "materialName": "diesel", "quantity": 5, "neededBy": "2026-05-09" },
+  "expectedAction": "create_material_request",
+  "expectedGuardrails": [],
+  "shouldCreateRequisition": true,
+  "shouldCreateApproval": false,
+  "shouldCreateEscalation": false
+}

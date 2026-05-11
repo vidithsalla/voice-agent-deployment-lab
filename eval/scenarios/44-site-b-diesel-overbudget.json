@@ -1,0 +1,19 @@
+{
+  "id": "44-site-b-diesel-overbudget",
+  "category": "budget_routing",
+  "critical": true,
+  "transcript": "This is Jose from Site B. We need 3 barrels of diesel tomorrow.",
+  "callerPhone": "+15550000002",
+  "expectedIntent": "create_material_request",
+  "expectedFields": {
+    "siteName": "Site B",
+    "materialName": "diesel",
+    "quantity": 3,
+    "neededBy": "2026-05-09"
+  },
+  "expectedAction": "create_material_request",
+  "expectedGuardrails": ["budget_exceeded"],
+  "shouldCreateRequisition": false,
+  "shouldCreateApproval": true,
+  "shouldCreateEscalation": false
+}

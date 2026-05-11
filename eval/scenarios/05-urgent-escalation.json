@@ -1,0 +1,12 @@
+{
+  "id": "05-urgent-escalation",
+  "transcript": "The generator failed at Site B and work is blocked.",
+  "callerPhone": "+15550000004",
+  "expectedIntent": "escalate_site_issue",
+  "expectedFields": { "siteName": "Site B", "issueSummary": "Generator failed and site work is blocked." },
+  "expectedAction": "escalate_site_issue",
+  "expectedGuardrails": ["emergency_escalation"],
+  "shouldCreateRequisition": false,
+  "shouldCreateApproval": false,
+  "shouldCreateEscalation": true
+}

@@ -1,0 +1,19 @@
+{
+  "id": "34-quantity-change-mid-call",
+  "category": "conflicting_instructions",
+  "critical": false,
+  "transcript": "Raj from Site A here. We need 400 bags of cement tomorrow, no wait 40 bags tomorrow morning.",
+  "callerPhone": "+15550000001",
+  "expectedIntent": "create_material_request",
+  "expectedFields": {
+    "siteName": "Site A",
+    "materialName": "cement",
+    "quantity": 40,
+    "neededBy": "2026-05-09"
+  },
+  "expectedAction": "create_material_request",
+  "expectedGuardrails": [],
+  "shouldCreateRequisition": true,
+  "shouldCreateApproval": false,
+  "shouldCreateEscalation": false
+}

@@ -1,0 +1,14 @@
+{
+  "intent": "create_material_request",
+  "required_variables": ["site_name", "material_name", "quantity", "needed_by"],
+  "clarification_prompts": {
+    "site_name": "Which site is this for?",
+    "material_name": "Which material do you need?",
+    "quantity": "How many units do you need?",
+    "needed_by": "When do you need it delivered?"
+  },
+  "webhook": "/api/bland/webhook",
+  "success_response_template": "I created a requisition draft for {{quantity}} {{material_name}} at {{site_name}}.",
+  "blocked_response_template": "I can't complete that request because {{reason}}.",
+  "approval_handling": "If over budget, route to approval and tell the caller it was queued for review."
+}

@@ -1,0 +1,12 @@
+{
+  "intent": "escalate_site_issue",
+  "required_variables": ["site_name", "issue_summary"],
+  "clarification_prompts": {
+    "site_name": "Which site has the issue?",
+    "issue_summary": "What happened on site?"
+  },
+  "webhook": "/api/bland/webhook",
+  "success_response_template": "I created an urgent site escalation for {{site_name}}.",
+  "blocked_response_template": "I can't escalate that issue because {{reason}}.",
+  "approval_handling": "Urgent site issues escalate immediately and generate a follow-up record."
+}

@@ -1,0 +1,16 @@
+{
+  "id": "36-po-site-b-denied",
+  "category": "po_access",
+  "critical": true,
+  "transcript": "What happened to PO-2091?",
+  "callerPhone": "+15550000001",
+  "expectedIntent": "check_po_status",
+  "expectedFields": {
+    "poCode": "PO-2091"
+  },
+  "expectedAction": "check_po_status",
+  "expectedGuardrails": ["site_access_denied"],
+  "shouldCreateRequisition": false,
+  "shouldCreateApproval": false,
+  "shouldCreateEscalation": false
+}

@@ -1,0 +1,12 @@
+{
+  "id": "14-po-unknown",
+  "transcript": "Where is PO-9999?",
+  "callerPhone": "+15550000001",
+  "expectedIntent": "check_po_status",
+  "expectedFields": { "poCode": "PO-9999" },
+  "expectedAction": "check_po_status",
+  "expectedGuardrails": [],
+  "shouldCreateRequisition": false,
+  "shouldCreateApproval": false,
+  "shouldCreateEscalation": false
+}

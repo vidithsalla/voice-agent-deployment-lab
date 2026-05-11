@@ -1,0 +1,18 @@
+{
+  "id": "35-site-access-denied-escalation",
+  "category": "site_access",
+  "critical": true,
+  "transcript": "The generator failed at Site B and work is blocked.",
+  "callerPhone": "+15550000001",
+  "expectedIntent": "escalate_site_issue",
+  "expectedFields": {
+    "siteName": "Site B",
+    "urgency": "high",
+    "issueSummary": "Generator failed and site work is blocked."
+  },
+  "expectedAction": "escalate_site_issue",
+  "expectedGuardrails": ["site_access_denied"],
+  "shouldCreateRequisition": false,
+  "shouldCreateApproval": false,
+  "shouldCreateEscalation": false
+}

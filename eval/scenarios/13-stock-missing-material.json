@@ -1,0 +1,12 @@
+{
+  "id": "13-stock-missing-material",
+  "transcript": "Do we have enough stock at Site A?",
+  "callerPhone": "+15550000001",
+  "expectedIntent": "check_stock",
+  "expectedFields": { "siteName": "Site A" },
+  "expectedAction": "check_stock",
+  "expectedGuardrails": ["missing_required_fields"],
+  "shouldCreateRequisition": false,
+  "shouldCreateApproval": false,
+  "shouldCreateEscalation": false
+}

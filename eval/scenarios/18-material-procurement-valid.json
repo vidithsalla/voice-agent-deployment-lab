@@ -1,0 +1,12 @@
+{
+  "id": "18-material-procurement-valid",
+  "transcript": "This is Anita from Site B. We need 1 bundle of steel rods tomorrow morning.",
+  "callerPhone": "+15550000002",
+  "expectedIntent": "create_material_request",
+  "expectedFields": { "siteName": "Site B", "materialName": "steel rods", "quantity": 1, "neededBy": "2026-05-09" },
+  "expectedAction": "create_material_request",
+  "expectedGuardrails": [],
+  "shouldCreateRequisition": true,
+  "shouldCreateApproval": false,
+  "shouldCreateEscalation": false
+}

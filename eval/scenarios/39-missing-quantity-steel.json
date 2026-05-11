@@ -1,0 +1,17 @@
+{
+  "id": "39-missing-quantity-steel",
+  "category": "missing_fields",
+  "critical": false,
+  "transcript": "We need steel rods today at Site A, but I don't know how many.",
+  "callerPhone": "+15550000001",
+  "expectedIntent": "create_material_request",
+  "expectedFields": {
+    "siteName": "Site A",
+    "materialName": "steel rods"
+  },
+  "expectedAction": "create_material_request",
+  "expectedGuardrails": ["missing_required_fields"],
+  "shouldCreateRequisition": false,
+  "shouldCreateApproval": false,
+  "shouldCreateEscalation": false
+}

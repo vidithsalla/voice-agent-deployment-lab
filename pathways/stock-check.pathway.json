@@ -1,0 +1,12 @@
+{
+  "intent": "check_stock",
+  "required_variables": ["site_name", "material_name"],
+  "clarification_prompts": {
+    "site_name": "Which site should I check?",
+    "material_name": "Which material should I look up?"
+  },
+  "webhook": "/api/bland/webhook",
+  "success_response_template": "I checked stock for {{material_name}} at {{site_name}}.",
+  "blocked_response_template": "I can't access that stock record because {{reason}}.",
+  "approval_handling": "Not applicable. This is read-only."
+}

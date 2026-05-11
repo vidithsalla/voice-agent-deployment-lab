@@ -1,0 +1,17 @@
+{
+  "id": "48-site-b-stock-denied",
+  "category": "site_access",
+  "critical": true,
+  "transcript": "Check stock for steel rods at Site B.",
+  "callerPhone": "+15550000001",
+  "expectedIntent": "check_stock",
+  "expectedFields": {
+    "siteName": "Site B",
+    "materialName": "steel rods"
+  },
+  "expectedAction": "check_stock",
+  "expectedGuardrails": ["site_access_denied"],
+  "shouldCreateRequisition": false,
+  "shouldCreateApproval": false,
+  "shouldCreateEscalation": false
+}

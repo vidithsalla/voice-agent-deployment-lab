@@ -1,0 +1,12 @@
+{
+  "id": "29-po-site-b-known",
+  "transcript": "Where is PO-2091?",
+  "callerPhone": "+15550000004",
+  "expectedIntent": "check_po_status",
+  "expectedFields": { "poCode": "PO-2091" },
+  "expectedAction": "check_po_status",
+  "expectedGuardrails": [],
+  "shouldCreateRequisition": false,
+  "shouldCreateApproval": false,
+  "shouldCreateEscalation": false
+}

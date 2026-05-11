@@ -1,0 +1,12 @@
+{
+  "id": "19-guest-cannot-request",
+  "transcript": "This is Omar from Site A. We need 2 bags of cement tomorrow morning.",
+  "callerPhone": "+15550000005",
+  "expectedIntent": "create_material_request",
+  "expectedFields": { "siteName": "Site A", "materialName": "cement", "quantity": 2, "neededBy": "2026-05-09" },
+  "expectedAction": "create_material_request",
+  "expectedGuardrails": ["site_access_denied"],
+  "shouldCreateRequisition": false,
+  "shouldCreateApproval": false,
+  "shouldCreateEscalation": false
+}

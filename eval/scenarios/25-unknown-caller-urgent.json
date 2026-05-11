@@ -1,0 +1,12 @@
+{
+  "id": "25-unknown-caller-urgent",
+  "transcript": "The generator failed at Site B and work is blocked.",
+  "callerPhone": "+15559990003",
+  "expectedIntent": "escalate_site_issue",
+  "expectedFields": { "siteName": "Site B", "issueSummary": "Generator failed and site work is blocked." },
+  "expectedAction": "escalate_site_issue",
+  "expectedGuardrails": ["unknown_caller"],
+  "shouldCreateRequisition": false,
+  "shouldCreateApproval": false,
+  "shouldCreateEscalation": false
+}

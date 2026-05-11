@@ -1,0 +1,14 @@
+{
+  "id": "49-unknown-vendor-finance",
+  "category": "finance_privacy",
+  "critical": false,
+  "transcript": "Has BlueRock Supply been paid?",
+  "callerPhone": "+15550000003",
+  "expectedIntent": "check_vendor_payment",
+  "expectedFields": {},
+  "expectedAction": "check_vendor_payment",
+  "expectedGuardrails": ["missing_required_fields"],
+  "shouldCreateRequisition": false,
+  "shouldCreateApproval": false,
+  "shouldCreateEscalation": false
+}

@@ -1,0 +1,19 @@
+{
+  "id": "50-duplicate-diesel-request",
+  "category": "duplicate_detection",
+  "critical": true,
+  "transcript": "This is Anita from Site B. We need 2 barrels of diesel tomorrow.",
+  "callerPhone": "+15550000002",
+  "expectedIntent": "create_material_request",
+  "expectedFields": {
+    "siteName": "Site B",
+    "materialName": "diesel",
+    "quantity": 2,
+    "neededBy": "2026-05-09"
+  },
+  "expectedAction": "create_material_request",
+  "expectedGuardrails": ["duplicate_request"],
+  "shouldCreateRequisition": false,
+  "shouldCreateApproval": false,
+  "shouldCreateEscalation": false
+}

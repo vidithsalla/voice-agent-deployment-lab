@@ -1,0 +1,12 @@
+{
+  "id": "16-unknown-caller-stock",
+  "transcript": "Do we have enough steel rods at Site B?",
+  "callerPhone": "+15550000004",
+  "expectedIntent": "check_stock",
+  "expectedFields": { "siteName": "Site B", "materialName": "steel rods" },
+  "expectedAction": "check_stock",
+  "expectedGuardrails": [],
+  "shouldCreateRequisition": false,
+  "shouldCreateApproval": false,
+  "shouldCreateEscalation": false
+}

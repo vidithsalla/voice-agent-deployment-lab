@@ -1,0 +1,19 @@
+{
+  "id": "45-site-b-diesel-valid",
+  "category": "happy_path",
+  "critical": false,
+  "transcript": "This is Anita from Site B. We need 2 barrels of diesel tomorrow.",
+  "callerPhone": "+15550000002",
+  "expectedIntent": "create_material_request",
+  "expectedFields": {
+    "siteName": "Site B",
+    "materialName": "diesel",
+    "quantity": 2,
+    "neededBy": "2026-05-09"
+  },
+  "expectedAction": "create_material_request",
+  "expectedGuardrails": [],
+  "shouldCreateRequisition": true,
+  "shouldCreateApproval": false,
+  "shouldCreateEscalation": false
+}

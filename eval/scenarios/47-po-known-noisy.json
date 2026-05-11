@@ -1,0 +1,16 @@
+{
+  "id": "47-po-known-noisy",
+  "category": "noisy_transcript",
+  "critical": false,
+  "transcript": "Raj here, quick one, what happened to PO-1048 again?",
+  "callerPhone": "+15550000001",
+  "expectedIntent": "check_po_status",
+  "expectedFields": {
+    "poCode": "PO-1048"
+  },
+  "expectedAction": "check_po_status",
+  "expectedGuardrails": [],
+  "shouldCreateRequisition": false,
+  "shouldCreateApproval": false,
+  "shouldCreateEscalation": false
+}

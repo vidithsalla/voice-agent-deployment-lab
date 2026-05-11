@@ -1,0 +1,161 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f4efe6;
+  --surface: #fffaf3;
+  --surface-strong: #e8dcc9;
+  --foreground: #1d1a17;
+  --muted: #6f655a;
+  --line: #c7baa8;
+  --accent: #0f5b50;
+  --accent-soft: #d8ebe7;
+  --warning: #b65d25;
+  --danger: #8e2e25;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: radial-gradient(circle at top, #fffaf1 0%, #efe6d7 55%, #e4d8c5 100%);
+  color: var(--foreground);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.shell {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 20px 64px;
+}
+
+.grid {
+  display: grid;
+  gap: 16px;
+}
+
+.panel {
+  background: rgba(255, 250, 243, 0.92);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 20px 40px rgba(75, 58, 37, 0.08);
+}
+
+.eyebrow {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.hero-title {
+  font-size: clamp(2.6rem, 6vw, 5.5rem);
+  line-height: 0.95;
+  margin: 12px 0;
+}
+
+.subtle {
+  color: var(--muted);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  background: rgba(216, 235, 231, 0.6);
+  font-size: 0.92rem;
+}
+
+.tag {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.85rem;
+  border: 1px solid var(--line);
+  background: white;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 12px 18px;
+  border: 1px solid var(--foreground);
+  background: var(--foreground);
+  color: var(--surface);
+}
+
+.cta.secondary {
+  background: transparent;
+  color: var(--foreground);
+}
+
+.status-allowed {
+  color: var(--accent);
+}
+
+.status-blocked {
+  color: var(--danger);
+}
+
+.status-approval_required,
+.status-clarification_needed {
+  color: var(--warning);
+}
+
+pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+@media (max-width: 720px) {
+  .shell {
+    padding: 20px 14px 48px;
+  }
+
+  .panel {
+    padding: 16px;
+    border-radius: 16px;
+  }
+}

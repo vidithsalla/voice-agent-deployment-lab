@@ -1,0 +1,18 @@
+{
+  "id": "46-unknown-caller-issue",
+  "category": "unknown_caller",
+  "critical": true,
+  "transcript": "The generator failed at Site A and work is blocked.",
+  "callerPhone": "+15551110000",
+  "expectedIntent": "escalate_site_issue",
+  "expectedFields": {
+    "siteName": "Site A",
+    "urgency": "high",
+    "issueSummary": "Generator failed and site work is blocked."
+  },
+  "expectedAction": "escalate_site_issue",
+  "expectedGuardrails": ["unknown_caller"],
+  "shouldCreateRequisition": false,
+  "shouldCreateApproval": false,
+  "shouldCreateEscalation": false
+}

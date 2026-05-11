@@ -1,0 +1,17 @@
+{
+  "id": "38-stock-noisy-steel",
+  "category": "noisy_transcript",
+  "critical": false,
+  "transcript": "Uh Anita here, can you check stock, Site B, steel... steel rods, sorry, just need to know what's there.",
+  "callerPhone": "+15550000002",
+  "expectedIntent": "check_stock",
+  "expectedFields": {
+    "siteName": "Site B",
+    "materialName": "steel rods"
+  },
+  "expectedAction": "check_stock",
+  "expectedGuardrails": [],
+  "shouldCreateRequisition": false,
+  "shouldCreateApproval": false,
+  "shouldCreateEscalation": false
+}

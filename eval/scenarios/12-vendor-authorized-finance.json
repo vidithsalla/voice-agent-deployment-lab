@@ -1,0 +1,12 @@
+{
+  "id": "12-vendor-authorized-finance",
+  "transcript": "What is the payment status for Orbit Supplies?",
+  "callerPhone": "+15550000003",
+  "expectedIntent": "check_vendor_payment",
+  "expectedFields": { "vendorName": "Orbit Supplies" },
+  "expectedAction": "check_vendor_payment",
+  "expectedGuardrails": [],
+  "shouldCreateRequisition": false,
+  "shouldCreateApproval": false,
+  "shouldCreateEscalation": false
+}

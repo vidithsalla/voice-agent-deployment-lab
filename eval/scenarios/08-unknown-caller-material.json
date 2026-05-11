@@ -1,0 +1,12 @@
+{
+  "id": "08-unknown-caller-material",
+  "transcript": "We need 10 bags of cement at Site A tomorrow morning.",
+  "callerPhone": "+15559990000",
+  "expectedIntent": "create_material_request",
+  "expectedFields": { "siteName": "Site A", "materialName": "cement", "quantity": 10, "neededBy": "2026-05-09" },
+  "expectedAction": "create_material_request",
+  "expectedGuardrails": ["unknown_caller"],
+  "shouldCreateRequisition": false,
+  "shouldCreateApproval": false,
+  "shouldCreateEscalation": false
+}

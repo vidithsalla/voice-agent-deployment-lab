@@ -1,0 +1,12 @@
+{
+  "id": "04-duplicate-request",
+  "transcript": "This is Raj from Site A. We need 40 bags of cement 2026-05-09.",
+  "callerPhone": "+15550000001",
+  "expectedIntent": "create_material_request",
+  "expectedFields": { "siteName": "Site A", "materialName": "cement", "quantity": 40, "neededBy": "2026-05-09" },
+  "expectedAction": "create_material_request",
+  "expectedGuardrails": ["duplicate_request"],
+  "shouldCreateRequisition": false,
+  "shouldCreateApproval": false,
+  "shouldCreateEscalation": false
+}

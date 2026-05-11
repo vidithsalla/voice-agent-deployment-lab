@@ -1,0 +1,12 @@
+{
+  "id": "20-field-engineer-finance-blocked",
+  "transcript": "Has Orbit Supplies been paid?",
+  "callerPhone": "+15550000004",
+  "expectedIntent": "check_vendor_payment",
+  "expectedFields": { "vendorName": "Orbit Supplies" },
+  "expectedAction": "check_vendor_payment",
+  "expectedGuardrails": ["restricted_finance_access"],
+  "shouldCreateRequisition": false,
+  "shouldCreateApproval": false,
+  "shouldCreateEscalation": false
+}

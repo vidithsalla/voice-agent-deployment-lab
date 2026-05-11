@@ -1,0 +1,11 @@
+{
+  "intent": "check_po_status",
+  "required_variables": ["po_code"],
+  "clarification_prompts": {
+    "po_code": "What is the purchase order number?"
+  },
+  "webhook": "/api/bland/webhook",
+  "success_response_template": "I found status for {{po_code}}.",
+  "blocked_response_template": "I can't access that PO because {{reason}}.",
+  "approval_handling": "Not applicable. This is read-only."
+}

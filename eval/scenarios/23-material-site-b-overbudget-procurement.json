@@ -1,0 +1,12 @@
+{
+  "id": "23-material-site-b-overbudget-procurement",
+  "transcript": "This is Anita from Site B. We need 3 bundles of steel rods tomorrow morning.",
+  "callerPhone": "+15550000002",
+  "expectedIntent": "create_material_request",
+  "expectedFields": { "siteName": "Site B", "materialName": "steel rods", "quantity": 3, "neededBy": "2026-05-09" },
+  "expectedAction": "create_material_request",
+  "expectedGuardrails": ["budget_exceeded"],
+  "shouldCreateRequisition": false,
+  "shouldCreateApproval": true,
+  "shouldCreateEscalation": false
+}

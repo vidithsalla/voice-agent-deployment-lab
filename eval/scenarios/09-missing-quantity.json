@@ -1,0 +1,12 @@
+{
+  "id": "09-missing-quantity",
+  "transcript": "This is Raj from Site A. We need cement tomorrow morning.",
+  "callerPhone": "+15550000001",
+  "expectedIntent": "create_material_request",
+  "expectedFields": { "siteName": "Site A", "materialName": "cement", "neededBy": "2026-05-09" },
+  "expectedAction": "create_material_request",
+  "expectedGuardrails": ["missing_required_fields"],
+  "shouldCreateRequisition": false,
+  "shouldCreateApproval": false,
+  "shouldCreateEscalation": false
+}

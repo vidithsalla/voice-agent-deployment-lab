@@ -1,0 +1,12 @@
+{
+  "id": "22-unknown-caller-po",
+  "transcript": "Where is PO-2091?",
+  "callerPhone": "+15559990002",
+  "expectedIntent": "check_po_status",
+  "expectedFields": { "poCode": "PO-2091" },
+  "expectedAction": "check_po_status",
+  "expectedGuardrails": ["unknown_caller"],
+  "shouldCreateRequisition": false,
+  "shouldCreateApproval": false,
+  "shouldCreateEscalation": false
+}

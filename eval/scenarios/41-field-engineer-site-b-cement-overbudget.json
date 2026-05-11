@@ -1,0 +1,19 @@
+{
+  "id": "41-field-engineer-site-b-cement-overbudget",
+  "category": "budget_routing",
+  "critical": true,
+  "transcript": "This is Jose from Site B. We need 40 bags of cement tomorrow morning.",
+  "callerPhone": "+15550000002",
+  "expectedIntent": "create_material_request",
+  "expectedFields": {
+    "siteName": "Site B",
+    "materialName": "cement",
+    "quantity": 40,
+    "neededBy": "2026-05-09"
+  },
+  "expectedAction": "create_material_request",
+  "expectedGuardrails": ["budget_exceeded"],
+  "shouldCreateRequisition": false,
+  "shouldCreateApproval": true,
+  "shouldCreateEscalation": false
+}

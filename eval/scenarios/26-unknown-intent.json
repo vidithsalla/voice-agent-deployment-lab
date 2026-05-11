@@ -1,0 +1,12 @@
+{
+  "id": "26-unknown-intent",
+  "transcript": "Can you remind me what happened last week?",
+  "callerPhone": "+15550000001",
+  "expectedIntent": "unknown",
+  "expectedFields": {},
+  "expectedAction": "extract_intent",
+  "expectedGuardrails": [],
+  "shouldCreateRequisition": false,
+  "shouldCreateApproval": false,
+  "shouldCreateEscalation": false
+}

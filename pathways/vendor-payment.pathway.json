@@ -1,0 +1,11 @@
+{
+  "intent": "check_vendor_payment",
+  "required_variables": ["vendor_name"],
+  "clarification_prompts": {
+    "vendor_name": "Which vendor should I check?"
+  },
+  "webhook": "/api/bland/webhook",
+  "success_response_template": "I checked payment status for {{vendor_name}}.",
+  "blocked_response_template": "I can't share that payment information because {{reason}}.",
+  "approval_handling": "Not applicable. Access is role-restricted."
+}

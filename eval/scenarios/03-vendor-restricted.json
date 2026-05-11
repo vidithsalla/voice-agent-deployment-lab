@@ -1,0 +1,12 @@
+{
+  "id": "03-vendor-restricted",
+  "transcript": "Has Kumar Traders been paid?",
+  "callerPhone": "+15550000001",
+  "expectedIntent": "check_vendor_payment",
+  "expectedFields": { "vendorName": "Kumar Traders" },
+  "expectedAction": "check_vendor_payment",
+  "expectedGuardrails": ["restricted_finance_access"],
+  "shouldCreateRequisition": false,
+  "shouldCreateApproval": false,
+  "shouldCreateEscalation": false
+}

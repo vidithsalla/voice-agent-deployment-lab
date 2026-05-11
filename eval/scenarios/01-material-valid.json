@@ -1,0 +1,12 @@
+{
+  "id": "01-material-valid",
+  "transcript": "This is Raj from Site A. We need 20 bags of cement tomorrow morning.",
+  "callerPhone": "+15550000001",
+  "expectedIntent": "create_material_request",
+  "expectedFields": { "siteName": "Site A", "materialName": "cement", "quantity": 20, "neededBy": "2026-05-09" },
+  "expectedAction": "create_material_request",
+  "expectedGuardrails": [],
+  "shouldCreateRequisition": true,
+  "shouldCreateApproval": false,
+  "shouldCreateEscalation": false
+}
