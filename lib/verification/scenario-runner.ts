@@ -83,6 +83,10 @@ async function runScenarioTrace(run: ScenarioRunSpec, options: RunScenarioGroupO
     notes.push(`engineDecision ${response.policy.engineDecision} != ${run.expectedEngineDecision}`);
   }
 
+  if (run.expectedNextStepDirective && response.nextStep.directive !== run.expectedNextStepDirective) {
+    notes.push(`nextStep ${response.nextStep.directive} != ${run.expectedNextStepDirective}`);
+  }
+
   const actualGuardrails = response.guardrails.map((item) => item.code).sort();
   const expectedGuardrails = [...run.expectedGuardrails].sort();
   if (JSON.stringify(actualGuardrails) !== JSON.stringify(expectedGuardrails)) {

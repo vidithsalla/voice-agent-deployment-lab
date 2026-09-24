@@ -1,10 +1,10 @@
-import type { CallerContext } from "@/lib/db/types";
+import type { CallerContext, CustomerConfig } from "@/lib/db/types";
 import { getBudgetStatus } from "@/lib/actions/budget";
 import { getPurchaseOrderStatus } from "@/lib/actions/purchaseOrders";
 import { findDuplicateMaterialRequest } from "@/lib/actions/requisitions";
 import { findSiteByName } from "@/lib/actions/sites";
 import type { IntentType } from "@/lib/db/types";
-import { hasRequiredFields, roleCanCreateRequisition, roleCanViewFinance, siteAccessAllowed } from "@/lib/policies/rules";
+import { hasRequiredFields, siteAccessAllowed } from "@/lib/policies/rules";
 import type { PolicyResult } from "@/lib/policies/types";
 import type { ExtractedFields } from "@/lib/simulator/extraction";
 
@@ -12,6 +12,8 @@ interface EvaluatePolicyInput {
   caller: CallerContext | null;
   intent: IntentType;
   fields: ExtractedFields;
+  customerConfig?: CustomerConfig | null;
+  idempotencyKey?: string;
 }
 
 function buildResult(input: {
@@ -41,7 +43,13 @@ function buildResult(input: {
   };
 }
 
-export async function evaluatePolicy({ caller, intent, fields }: EvaluatePolicyInput): Promise<PolicyResult> {
+export async function evaluatePolicy({
+  caller,
+  intent,
+  fields,
+  customerConfig,
+  idempotencyKey
+}: EvaluatePolicyInput): Promise<PolicyResult> {
   const guardrails: PolicyResult["guardrails"] = [];
   const reasons: string[] = [];
   const requiredClarifications: string[] = [];
@@ -98,6 +106,27 @@ export async function evaluatePolicy({ caller, intent, fields }: EvaluatePolicyI
     });
   }
 
+  if (callerKnown && customerConfig && intent !== "unknown") {
+    const allowedActions = caller ? customerConfig.rolePermissions[caller.role] ?? [] : [];
+    const tenantActionAllowed = allowedActions.includes(intent);
+    checks.push({
+      name: "tenant_action_allowed",
+      passed: tenantActionAllowed,
+      reason: tenantActionAllowed
+        ? `${customerConfig.name} permits ${caller?.role} to request ${intent}.`
+        : `${customerConfig.name} does not permit ${caller?.role ?? "unknown"} to request ${intent}.`
+    });
+
+    if (!tenantActionAllowed) {
+      guardrails.push({
+        code: intent === "check_vendor_payment" ? "restricted_finance_access" : "site_access_denied",
+        reason: "Tenant configuration does not permit this action for the caller role."
+      });
+      reasons.push("Tenant configuration denied this action.");
+      return buildResult({ decision: "block", guardrails, reasons, checks });
+    }
+  }
+
   if (!hasRequiredFields(intent, fields)) {
     const missing =
       intent === "create_material_request"
@@ -136,6 +165,20 @@ export async function evaluatePolicy({ caller, intent, fields }: EvaluatePolicyI
   }
 
   const site = fields.siteName ? await findSiteByName(fields.siteName) : null;
+  if (fields.siteName && customerConfig && site && !customerConfig.allowedSiteIds.includes(site.id)) {
+    checks.push({
+      name: "site_access_allowed",
+      passed: false,
+      reason: `${customerConfig.name} does not allow deployment actions for ${fields.siteName}.`
+    });
+    guardrails.push({
+      code: "site_access_denied",
+      reason: `${fields.siteName} is outside this customer deployment configuration.`
+    });
+    reasons.push("Tenant site boundary denied this action.");
+    return buildResult({ decision: "block", guardrails, reasons, checks });
+  }
+
   if (fields.siteName && !siteAccessAllowed(caller, site?.id ?? null)) {
     checks.push({
       name: "site_access_allowed",
@@ -157,7 +200,11 @@ export async function evaluatePolicy({ caller, intent, fields }: EvaluatePolicyI
   }
 
   if (intent === "create_material_request") {
-    if (!roleCanCreateRequisition(caller)) {
+    const roleCanCreateRequisition = customerConfig
+      ? Boolean(caller && customerConfig.rolePermissions[caller.role]?.includes("create_material_request"))
+      : caller?.role === "site_manager" || caller?.role === "procurement_manager";
+
+    if (!roleCanCreateRequisition) {
       checks.push({
         name: "role_can_create_requisition",
         passed: false,
@@ -197,6 +244,13 @@ export async function evaluatePolicy({ caller, intent, fields }: EvaluatePolicyI
     });
 
     if (duplicate) {
+      if (idempotencyKey && duplicate.idempotencyKey === idempotencyKey) {
+        checks.push({
+          name: "idempotent_replay_allowed",
+          passed: true,
+          reason: "A matching requisition exists with the same idempotency key, so this delivery can replay safely."
+        });
+      } else {
       checks.push({
         name: "duplicate_request_check",
         passed: false,
@@ -208,12 +262,15 @@ export async function evaluatePolicy({ caller, intent, fields }: EvaluatePolicyI
       });
       reasons.push("Duplicate material request detected.");
       return buildResult({ decision: "block", guardrails, reasons, checks });
+      }
     }
 
     checks.push({
       name: "duplicate_request_check",
       passed: true,
-      reason: "No duplicate requisition fingerprint was found."
+      reason: duplicate
+        ? "Duplicate business fingerprint matched the same idempotency key."
+        : "No duplicate requisition fingerprint was found."
     });
 
     const budget = await getBudgetStatus({
@@ -222,15 +279,19 @@ export async function evaluatePolicy({ caller, intent, fields }: EvaluatePolicyI
       quantity: fields.quantity ?? 0
     });
 
-    if (!budget.withinLimit) {
+    const withinConfiguredLimit = budget.estimatedCost <= (customerConfig?.materialApprovalLimit ?? Number.POSITIVE_INFINITY);
+    if (!budget.withinLimit || !withinConfiguredLimit) {
+      const thresholdReason = !withinConfiguredLimit
+        ? `Estimated cost ${budget.estimatedCost} exceeds tenant approval limit ${customerConfig?.materialApprovalLimit}.`
+        : `Estimated cost ${budget.estimatedCost} exceeds remaining budget ${budget.remainingBudget}.`;
       checks.push({
         name: "budget_within_limit",
         passed: false,
-        reason: `Estimated cost ${budget.estimatedCost} exceeds remaining budget ${budget.remainingBudget}.`
+        reason: thresholdReason
       });
       guardrails.push({
         code: "budget_exceeded",
-        reason: `Estimated cost ${budget.estimatedCost} exceeds remaining budget ${budget.remainingBudget}.`
+        reason: thresholdReason
       });
       reasons.push("Budget limit exceeded, route to approval.");
       return buildResult({ decision: "route_to_approval", guardrails, reasons, checks });
@@ -277,7 +338,11 @@ export async function evaluatePolicy({ caller, intent, fields }: EvaluatePolicyI
   }
 
   if (intent === "check_vendor_payment") {
-    if (!roleCanViewFinance(caller)) {
+    const roleCanViewFinance = customerConfig
+      ? Boolean(caller && customerConfig.financeVisibleRoles.includes(caller.role))
+      : caller?.role === "finance_analyst" || caller?.role === "procurement_manager";
+
+    if (!roleCanViewFinance) {
       checks.push({
         name: "role_can_view_finance",
         passed: false,

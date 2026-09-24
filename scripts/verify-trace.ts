@@ -1,4 +1,3 @@
-import { getRepository } from "@/lib/db/repository";
 import { writeTraceVerificationReport } from "@/lib/verification/report";
 import { runScenarioGroup } from "@/lib/verification/scenario-runner";
 import { canonicalTraceScenarios } from "@/lib/verification/scenarios";
@@ -8,7 +7,6 @@ function formatCell(value: string, width: number) {
 }
 
 async function main() {
-  const repo = getRepository();
   const traces = [];
   for (const scenario of canonicalTraceScenarios) {
     traces.push(await runScenarioGroup(scenario, { resetBeforeGroup: true }));

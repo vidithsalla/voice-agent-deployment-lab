@@ -14,6 +14,7 @@ export interface ScenarioRunSpec {
   expectedAction?: string;
   expectedPolicyDecision?: PolicyDecision;
   expectedEngineDecision?: PolicyEngineDecision;
+  expectedNextStepDirective?: "continue" | "clarify" | "await_approval" | "handoff_to_human" | "retry_later" | "reconcile";
   expectedGuardrails: GuardrailCode[];
   expectedFields?: Record<string, unknown>;
   expectedClarifications?: string[];
@@ -49,6 +50,7 @@ export const canonicalTraceScenarios: ScenarioGroupSpec[] = [
         expectedIntent: "create_material_request",
         expectedPolicyDecision: "allowed",
         expectedEngineDecision: "allow",
+        expectedNextStepDirective: "continue",
         expectedGuardrails: [],
         expectedFields: {
           siteName: "Site A",
@@ -78,6 +80,7 @@ export const canonicalTraceScenarios: ScenarioGroupSpec[] = [
         expectedIntent: "create_material_request",
         expectedPolicyDecision: "clarification_needed",
         expectedEngineDecision: "clarify",
+        expectedNextStepDirective: "clarify",
         expectedGuardrails: ["missing_required_fields"],
         expectedFields: {
           siteName: "Site A",
@@ -107,6 +110,7 @@ export const canonicalTraceScenarios: ScenarioGroupSpec[] = [
         expectedIntent: "create_material_request",
         expectedPolicyDecision: "approval_required",
         expectedEngineDecision: "route_to_approval",
+        expectedNextStepDirective: "await_approval",
         expectedGuardrails: ["budget_exceeded"],
         expectedFields: {
           siteName: "Site A",
@@ -136,6 +140,7 @@ export const canonicalTraceScenarios: ScenarioGroupSpec[] = [
         expectedIntent: "create_material_request",
         expectedPolicyDecision: "blocked",
         expectedEngineDecision: "block",
+        expectedNextStepDirective: "handoff_to_human",
         expectedGuardrails: ["unknown_caller"],
         expectedFields: {
           siteName: "Site A",
@@ -166,6 +171,7 @@ export const canonicalTraceScenarios: ScenarioGroupSpec[] = [
         expectedIntent: "create_material_request",
         expectedPolicyDecision: "allowed",
         expectedEngineDecision: "allow",
+        expectedNextStepDirective: "continue",
         expectedGuardrails: [],
         shouldCreateRequisition: true,
         shouldCreateApproval: false,
@@ -183,6 +189,7 @@ export const canonicalTraceScenarios: ScenarioGroupSpec[] = [
         expectedIntent: "create_material_request",
         expectedPolicyDecision: "blocked",
         expectedEngineDecision: "block",
+        expectedNextStepDirective: "handoff_to_human",
         expectedGuardrails: ["duplicate_request"],
         shouldCreateRequisition: false,
         shouldCreateApproval: false,
@@ -206,6 +213,7 @@ export const canonicalTraceScenarios: ScenarioGroupSpec[] = [
         expectedIntent: "check_vendor_payment",
         expectedPolicyDecision: "blocked",
         expectedEngineDecision: "block",
+        expectedNextStepDirective: "handoff_to_human",
         expectedGuardrails: ["restricted_finance_access"],
         expectedFields: { vendorName: "Kumar Traders" },
         shouldCreateRequisition: false,
@@ -231,6 +239,7 @@ export const canonicalTraceScenarios: ScenarioGroupSpec[] = [
         expectedIntent: "check_vendor_payment",
         expectedPolicyDecision: "allowed",
         expectedEngineDecision: "allow",
+        expectedNextStepDirective: "continue",
         expectedGuardrails: [],
         expectedFields: { vendorName: "Kumar Traders" },
         shouldCreateRequisition: false,
@@ -256,6 +265,7 @@ export const canonicalTraceScenarios: ScenarioGroupSpec[] = [
         expectedIntent: "check_po_status",
         expectedPolicyDecision: "allowed",
         expectedEngineDecision: "allow",
+        expectedNextStepDirective: "continue",
         expectedGuardrails: [],
         expectedFields: { poCode: "PO-1048" },
         shouldCreateRequisition: false,
@@ -280,6 +290,7 @@ export const canonicalTraceScenarios: ScenarioGroupSpec[] = [
         expectedIntent: "escalate_site_issue",
         expectedPolicyDecision: "allowed",
         expectedEngineDecision: "escalate",
+        expectedNextStepDirective: "continue",
         expectedGuardrails: ["emergency_escalation"],
         expectedFields: {
           siteName: "Site B",
@@ -307,6 +318,7 @@ export const canonicalTraceScenarios: ScenarioGroupSpec[] = [
         expectedIntent: "create_material_request",
         expectedPolicyDecision: "blocked",
         expectedEngineDecision: "block",
+        expectedNextStepDirective: "handoff_to_human",
         expectedGuardrails: ["approval_bypass_attempt"],
         expectedFields: {
           siteName: "Site A",

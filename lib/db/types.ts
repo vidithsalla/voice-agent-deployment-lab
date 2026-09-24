@@ -15,6 +15,28 @@ export type IntentType =
 
 export type PolicyDecision = "allowed" | "blocked" | "clarification_needed" | "approval_required";
 export type PolicyEngineDecision = "allow" | "block" | "clarify" | "route_to_approval" | "escalate";
+export type ActionLifecycleState =
+  | "received"
+  | "validated"
+  | "clarification_required"
+  | "human_review_required"
+  | "blocked"
+  | "approval_pending"
+  | "approved"
+  | "rejected"
+  | "executing"
+  | "succeeded"
+  | "reconciliation_required"
+  | "failed_retryable"
+  | "failed_terminal"
+  | "recovered";
+
+export type AdapterFailureMode =
+  | "none"
+  | "timeout_before_mutation"
+  | "retryable_5xx"
+  | "mutated_response_lost"
+  | "terminal_validation_failure";
 
 export type GuardrailCode =
   | "unknown_caller"
@@ -25,11 +47,33 @@ export type GuardrailCode =
   | "duplicate_request"
   | "approval_bypass_attempt"
   | "emergency_escalation"
-  | "extraction_failed";
+  | "extraction_failed"
+  | "unknown_customer"
+  | "idempotency_key_conflict";
 
 export interface Organization {
   id: string;
   name: string;
+}
+
+export interface CustomerConfig {
+  id: string;
+  orgId: string;
+  key: string;
+  name: string;
+  allowedSiteIds: string[];
+  rolePermissions: Record<RoleName, IntentType[]>;
+  financeVisibleRoles: RoleName[];
+  materialApprovalLimit: number;
+  escalationRules: {
+    urgentIssueSeverity: "high";
+    afterHoursEscalation: boolean;
+  };
+  blandPathwayMappings: {
+    materialRequestPathwayId?: string;
+    deploymentId: string;
+  };
+  policyVersion: string;
 }
 
 export interface Role {
@@ -161,6 +205,44 @@ export interface SiteIssue {
   idempotencyKey: string;
 }
 
+export interface ActionRequest {
+  id: string;
+  orgId: string;
+  customerConfigKey: string;
+  interactionId: string;
+  actionName: IntentType;
+  idempotencyKey: string;
+  fingerprint: string;
+  lifecycleState: ActionLifecycleState;
+  policyDecision: PolicyDecision;
+  approvalRequestId: string | null;
+  resultPayload: Record<string, unknown> | null;
+  errorCode: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdapterAttempt {
+  id: string;
+  orgId: string;
+  actionRequestId: string;
+  adapterName: string;
+  attemptNumber: number;
+  failureMode: AdapterFailureMode;
+  status:
+    | "succeeded"
+    | "failed_retryable"
+    | "failed_terminal"
+    | "reconciliation_required"
+    | "reconciliation_found"
+    | "reconciliation_missing"
+    | "reconciliation_unresolved"
+    | "recovered";
+  requestPayload: Record<string, unknown>;
+  responsePayload: Record<string, unknown>;
+  createdAt: string;
+}
+
 export interface VoiceInteraction {
   id: string;
   orgId: string;
@@ -249,6 +331,7 @@ export interface EvalScenarioResult {
 
 export interface DemoDatabase {
   organizations: Organization[];
+  customerConfigs: CustomerConfig[];
   roles: Role[];
   users: User[];
   sites: Site[];
@@ -264,6 +347,8 @@ export interface DemoDatabase {
   requisitionLines: RequisitionLine[];
   approvalRequests: ApprovalRequest[];
   siteIssues: SiteIssue[];
+  actionRequests: ActionRequest[];
+  adapterAttempts: AdapterAttempt[];
   voiceInteractions: VoiceInteraction[];
   voiceActionLogs: VoiceActionLog[];
   webhookEvents: WebhookEvent[];
@@ -294,6 +379,10 @@ export interface PolicyCheckResult {
     | "approval_bypass_attempt"
     | "emergency_escalation"
     | "read_only_action_allowed"
+    | "tenant_action_allowed"
+    | "idempotent_replay_allowed"
+    | "customer_resolved"
+    | "idempotency_fingerprint_match"
     | "mutation_requires_authorized_caller";
   passed: boolean;
   reason: string;

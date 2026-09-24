@@ -27,7 +27,9 @@ interface ReportInput {
 }
 
 export function writeEvalReports(input: ReportInput) {
-  const resultsMd = `# Eval Results
+  const resultsMd = `# Eval Results (deterministic policy regression)
+
+These figures come from a fixed set of scripted scenarios run through the deterministic policy gateway. They are not a model-quality, telephony, or production-reliability measurement.
 
 - Total scenarios: ${input.summary.total}
 - Passed: ${input.summary.passed}
@@ -54,11 +56,11 @@ export function writeEvalReports(input: ReportInput) {
 ${input.failures.length === 0 ? "- None" : input.failures.map((failure) => `- ${failure.scenarioId} (${failure.critical ? "critical" : "non-critical"}): ${failure.notes.join("; ")}`).join("\n")}
 `;
 
-  const readinessMd = `# Deployment Readiness Report
+  const readinessMd = `# Deployment Readiness Report (deterministic policy regression)
 
 ## Summary
 
-This deployment harness ran ${input.summary.total} regression scenarios through the shared voice action gateway.
+This harness ran ${input.summary.total} scripted policy regression scenarios through the shared voice action gateway. "Ready" means those scenarios passed with no unsafe mutation; it does not assess conversation quality or live traffic.
 
 ## Readiness Signals
 
@@ -84,7 +86,7 @@ ${
     ? "Ready. No unsafe mutations occurred, audit coverage is 100%, and critical scenarios passed."
     : input.summary.readinessStatus === "conditionally_ready"
       ? "Conditionally ready. Unsafe mutations are still prevented, but non-critical eval failures remain."
-      : "Not ready. Unsafe actions, audit gaps, or failed critical scenarios must be resolved before outreach."
+      : "Not ready. Unsafe actions, audit gaps, or failed critical scenarios must be resolved before this change ships."
 }
 `;
 

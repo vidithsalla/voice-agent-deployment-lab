@@ -1,9 +1,15 @@
+import { requireOperator } from "@/lib/auth/operator";
 import { NextResponse } from "next/server";
 import { runVoiceAction } from "@/lib/actions/action-gateway";
 import { badRequest, parseJson } from "@/lib/api";
 import { createRequisitionRequestSchema } from "@/lib/schemas/actions";
 
 export async function POST(request: Request) {
+  const auth = requireOperator(request);
+  if (!auth.ok) {
+    return auth.response;
+  }
+
   const parsed = await parseJson(request, createRequisitionRequestSchema);
   if (!parsed.success) {
     return badRequest([{ code: "invalid_request", message: parsed.error.message }]);

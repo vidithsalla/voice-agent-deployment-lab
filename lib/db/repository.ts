@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import * as schema from "@/lib/db/schema";
 import { getPostgresDb, postgresEnabled } from "@/lib/db/client";
@@ -6,13 +6,17 @@ import { seedDatabase } from "@/lib/db/seed-data";
 import { getDemoDb, resetDemoDb } from "@/lib/db/store";
 import type {
   ApprovalRequest,
+  AdapterAttempt,
+  AdapterFailureMode,
+  ActionLifecycleState,
+  ActionRequest,
   CallerContext,
+  CustomerConfig,
   DemoDatabase,
   EvalRun,
   EvalScenarioResult,
   GuardrailEvent,
   MessageFollowup,
-  PurchaseOrder,
   Requisition,
   SiteIssue,
   VoiceActionLog,
@@ -54,6 +58,35 @@ interface WebhookEventInput {
   responseBody: Record<string, unknown>;
 }
 
+interface ActionRequestInput {
+  orgId: string;
+  customerConfigKey: string;
+  interactionId: string;
+  actionName: ActionRequest["actionName"];
+  idempotencyKey: string;
+  fingerprint: string;
+  lifecycleState: ActionLifecycleState;
+  policyDecision: ActionRequest["policyDecision"];
+}
+
+interface ActionRequestUpdate {
+  lifecycleState?: ActionLifecycleState;
+  policyDecision?: ActionRequest["policyDecision"];
+  approvalRequestId?: string | null;
+  resultPayload?: Record<string, unknown> | null;
+  errorCode?: string | null;
+}
+
+interface AdapterAttemptInput {
+  orgId: string;
+  actionRequestId: string;
+  adapterName: string;
+  failureMode: AdapterFailureMode;
+  status: AdapterAttempt["status"];
+  requestPayload: Record<string, unknown>;
+  responsePayload: Record<string, unknown>;
+}
+
 function asNumber(value: number | string | null | undefined) {
   return Number(value ?? 0);
 }
@@ -75,6 +108,14 @@ class MemoryRepository {
 
   async countPhoneIdentities() {
     return this.db().phoneIdentities.length;
+  }
+
+  async getCustomerConfigByKey(key: string): Promise<CustomerConfig | null> {
+    return this.db().customerConfigs.find((item) => item.key === key) ?? null;
+  }
+
+  async listCustomerConfigs() {
+    return [...this.db().customerConfigs];
   }
 
   async resolveCallerByPhone(callerPhone: string): Promise<CallerContext | null> {
@@ -201,6 +242,11 @@ class MemoryRepository {
       return null;
     }
 
+    const concurrent = db.requisitions.find((item) => item.idempotencyKey === input.idempotencyKey);
+    if (concurrent) {
+      return concurrent;
+    }
+
     const requisition: Requisition = {
       id: createId("req"),
       orgId: site.orgId,
@@ -246,6 +292,11 @@ class MemoryRepository {
       return null;
     }
 
+    const concurrent = db.approvalRequests.find((item) => item.idempotencyKey === input.idempotencyKey);
+    if (concurrent) {
+      return concurrent;
+    }
+
     const approval: ApprovalRequest = {
       id: createId("approval"),
       orgId: site.orgId,
@@ -258,6 +309,20 @@ class MemoryRepository {
     };
 
     db.approvalRequests.push(approval);
+    return approval;
+  }
+
+  async getApprovalRequestById(id: string) {
+    return this.db().approvalRequests.find((item) => item.id === id) ?? null;
+  }
+
+  async updateApprovalRequestStatus(id: string, status: ApprovalRequest["status"]) {
+    const approval = this.db().approvalRequests.find((item) => item.id === id);
+    if (!approval) {
+      return null;
+    }
+
+    approval.status = status;
     return approval;
   }
 
@@ -308,6 +373,11 @@ class MemoryRepository {
       return null;
     }
 
+    const concurrent = db.siteIssues.find((item) => item.idempotencyKey === input.idempotencyKey);
+    if (concurrent) {
+      return concurrent;
+    }
+
     const issue: SiteIssue = {
       id: createId("issue"),
       orgId: site.orgId,
@@ -321,6 +391,79 @@ class MemoryRepository {
 
     db.siteIssues.push(issue);
     return issue;
+  }
+
+  async getActionRequestByIdempotency(idempotencyKey: string) {
+    return this.db().actionRequests.find((item) => item.idempotencyKey === idempotencyKey) ?? null;
+  }
+
+  async getActionRequestById(id: string) {
+    return this.db().actionRequests.find((item) => item.id === id) ?? null;
+  }
+
+  async getActionRequestByApprovalId(approvalRequestId: string) {
+    return this.db().actionRequests.find((item) => item.approvalRequestId === approvalRequestId) ?? null;
+  }
+
+  async createActionRequest(input: ActionRequestInput) {
+    const existing = this.db().actionRequests.find((item) => item.idempotencyKey === input.idempotencyKey);
+    if (existing) {
+      return { actionRequest: existing, reused: true };
+    }
+
+    const now = new Date().toISOString();
+    const actionRequest: ActionRequest = {
+      id: createId("action-request"),
+      ...input,
+      approvalRequestId: null,
+      resultPayload: null,
+      errorCode: null,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.db().actionRequests.push(actionRequest);
+    return { actionRequest, reused: false };
+  }
+
+  async updateActionRequest(id: string, update: ActionRequestUpdate) {
+    const actionRequest = this.db().actionRequests.find((item) => item.id === id);
+    if (!actionRequest) {
+      return null;
+    }
+
+    Object.assign(actionRequest, update, { updatedAt: new Date().toISOString() });
+    return actionRequest;
+  }
+
+  /** Compare-and-set: applies `update` only if the action request is currently in one of `from`. */
+  async transitionActionRequest(id: string, from: ActionLifecycleState[], update: ActionRequestUpdate) {
+    const actionRequest = this.db().actionRequests.find((item) => item.id === id);
+    if (!actionRequest || !from.includes(actionRequest.lifecycleState)) {
+      return null;
+    }
+
+    Object.assign(actionRequest, update, { updatedAt: new Date().toISOString() });
+    return actionRequest;
+  }
+
+  async recordAdapterAttempt(input: AdapterAttemptInput) {
+    const attempts = this.db().adapterAttempts.filter((item) => item.actionRequestId === input.actionRequestId);
+    const attempt: AdapterAttempt = {
+      id: createId("adapter-attempt"),
+      ...input,
+      attemptNumber: attempts.length + 1,
+      createdAt: new Date().toISOString()
+    };
+    this.db().adapterAttempts.push(attempt);
+    return attempt;
+  }
+
+  async listAdapterAttemptsByActionRequest(actionRequestId: string) {
+    return this.db().adapterAttempts.filter((item) => item.actionRequestId === actionRequestId);
+  }
+
+  async listActionRequests() {
+    return [...this.db().actionRequests].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
 
   async saveFollowup(input: { orgId: string; interactionId: string; message: string }) {
@@ -337,11 +480,17 @@ class MemoryRepository {
   }
 
   async createInteraction(input: InteractionInput) {
-    this.db().voiceInteractions.push({
+    const existing = this.db().voiceInteractions.find((item) => item.id === input.interactionId);
+    const row = {
       id: input.interactionId,
       ...input,
       createdAt: new Date().toISOString()
-    });
+    };
+    if (existing) {
+      Object.assign(existing, row, { createdAt: existing.createdAt });
+      return;
+    }
+    this.db().voiceInteractions.push(row);
   }
 
   async createActionLog(input: ActionLogInput) {
@@ -413,7 +562,11 @@ class MemoryRepository {
   }
 
   async getFollowupByInteraction(interactionId: string) {
-    return this.db().messageFollowups.find((item) => item.interactionId === interactionId) ?? null;
+    return (
+      this.db().messageFollowups
+        .filter((item) => item.interactionId === interactionId)
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ?? null
+    );
   }
 
   async listRequisitions() {
@@ -464,9 +617,52 @@ class MemoryRepository {
 class PostgresRepository {
   constructor(private readonly db: DbClient) {}
 
+  private async insertIfAny<T>(table: Parameters<DbClient["insert"]>[0], rows: T[]) {
+    if (rows.length === 0) {
+      return;
+    }
+
+    await this.db.insert(table).values(rows as never);
+  }
+
   async countPhoneIdentities() {
     const [{ count }] = await this.db.select({ count: sql<number>`count(*)` }).from(schema.phoneIdentities);
     return Number(count);
+  }
+
+  async getCustomerConfigByKey(key: string): Promise<CustomerConfig | null> {
+    const row =
+      (
+        await this.db
+          .select()
+          .from(schema.customerConfigs)
+          .where(eq(schema.customerConfigs.key, key))
+          .limit(1)
+      )[0] ?? null;
+    return row
+      ? {
+          ...row,
+          allowedSiteIds: row.allowedSiteIds as CustomerConfig["allowedSiteIds"],
+          rolePermissions: row.rolePermissions as CustomerConfig["rolePermissions"],
+          financeVisibleRoles: row.financeVisibleRoles as CustomerConfig["financeVisibleRoles"],
+          materialApprovalLimit: asNumber(row.materialApprovalLimit),
+          escalationRules: row.escalationRules as CustomerConfig["escalationRules"],
+          blandPathwayMappings: row.blandPathwayMappings as CustomerConfig["blandPathwayMappings"]
+        }
+      : null;
+  }
+
+  async listCustomerConfigs() {
+    const rows = await this.db.select().from(schema.customerConfigs);
+    return rows.map((row) => ({
+      ...row,
+      allowedSiteIds: row.allowedSiteIds as CustomerConfig["allowedSiteIds"],
+      rolePermissions: row.rolePermissions as CustomerConfig["rolePermissions"],
+      financeVisibleRoles: row.financeVisibleRoles as CustomerConfig["financeVisibleRoles"],
+      materialApprovalLimit: asNumber(row.materialApprovalLimit),
+      escalationRules: row.escalationRules as CustomerConfig["escalationRules"],
+      blandPathwayMappings: row.blandPathwayMappings as CustomerConfig["blandPathwayMappings"]
+    }));
   }
 
   async resolveCallerByPhone(callerPhone: string): Promise<CallerContext | null> {
@@ -677,18 +873,27 @@ class PostgresRepository {
 
     const requisitionId = createId("req");
     const totalCost = material.unitCost * input.quantity;
-    await this.db.transaction(async (tx) => {
-      await tx.insert(schema.requisitions).values({
-        id: requisitionId,
-        orgId: site.orgId,
-        siteId: site.id,
-        requestedByUserId: input.callerUserId,
-        status: "draft",
-        idempotencyKey: input.idempotencyKey,
-        interactionId: input.interactionId,
-        totalCost: totalCost.toString(),
-        neededBy: input.neededBy
-      });
+    const created = await this.db.transaction(async (tx) => {
+      // The unique idempotency index makes this the single atomic claim: a concurrent duplicate
+      // inserts nothing and falls through to the existing row below.
+      const inserted = await tx
+        .insert(schema.requisitions)
+        .values({
+          id: requisitionId,
+          orgId: site.orgId,
+          siteId: site.id,
+          requestedByUserId: input.callerUserId,
+          status: "draft",
+          idempotencyKey: input.idempotencyKey,
+          interactionId: input.interactionId,
+          totalCost: totalCost.toString(),
+          neededBy: input.neededBy
+        })
+        .onConflictDoNothing({ target: schema.requisitions.idempotencyKey })
+        .returning({ id: schema.requisitions.id });
+      if (inserted.length === 0) {
+        return false;
+      }
 
       await tx.insert(schema.requisitionLines).values({
         id: createId("req-line"),
@@ -697,7 +902,12 @@ class PostgresRepository {
         materialId: material.id,
         quantity: input.quantity
       });
+      return true;
     });
+
+    if (!created) {
+      return this.findRequisitionByIdempotency(input.idempotencyKey);
+    }
 
     return {
       id: requisitionId,
@@ -752,8 +962,33 @@ class PostgresRepository {
       idempotencyKey: input.idempotencyKey
     };
 
-    await this.db.insert(schema.approvalRequests).values(approval);
-    return approval;
+    const inserted = await this.db
+      .insert(schema.approvalRequests)
+      .values(approval)
+      .onConflictDoNothing({ target: schema.approvalRequests.idempotencyKey })
+      .returning({ id: schema.approvalRequests.id });
+    return inserted.length > 0 ? approval : this.findApprovalByIdempotency(input.idempotencyKey);
+  }
+
+  async getApprovalRequestById(id: string) {
+    return (
+      (
+        await this.db
+          .select()
+          .from(schema.approvalRequests)
+          .where(eq(schema.approvalRequests.id, id))
+          .limit(1)
+      )[0] ?? null
+    );
+  }
+
+  async updateApprovalRequestStatus(id: string, status: ApprovalRequest["status"]) {
+    const [row] = await this.db
+      .update(schema.approvalRequests)
+      .set({ status })
+      .where(eq(schema.approvalRequests.id, id))
+      .returning();
+    return row ?? null;
   }
 
   async getPurchaseOrderStatus(poCode: string) {
@@ -847,8 +1082,221 @@ class PostgresRepository {
       summary: input.issueSummary,
       idempotencyKey: input.idempotencyKey
     };
-    await this.db.insert(schema.siteIssues).values(issue);
-    return issue;
+    const inserted = await this.db
+      .insert(schema.siteIssues)
+      .values(issue)
+      .onConflictDoNothing({ target: schema.siteIssues.idempotencyKey })
+      .returning({ id: schema.siteIssues.id });
+    return inserted.length > 0 ? issue : this.findEscalationByIdempotency(input.idempotencyKey);
+  }
+
+  async getActionRequestByIdempotency(idempotencyKey: string) {
+    const row =
+      (
+        await this.db
+          .select()
+          .from(schema.actionRequests)
+          .where(eq(schema.actionRequests.idempotencyKey, idempotencyKey))
+          .limit(1)
+      )[0] ?? null;
+    return row
+      ? {
+          ...row,
+          actionName: row.actionName as ActionRequest["actionName"],
+          lifecycleState: row.lifecycleState as ActionRequest["lifecycleState"],
+          policyDecision: row.policyDecision as ActionRequest["policyDecision"],
+          resultPayload: (row.resultPayload as Record<string, unknown> | null) ?? null,
+          createdAt: asIsoString(row.createdAt),
+          updatedAt: asIsoString(row.updatedAt)
+        }
+      : null;
+  }
+
+  async getActionRequestById(id: string) {
+    const row =
+      (
+        await this.db
+          .select()
+          .from(schema.actionRequests)
+          .where(eq(schema.actionRequests.id, id))
+          .limit(1)
+      )[0] ?? null;
+    return row
+      ? {
+          ...row,
+          actionName: row.actionName as ActionRequest["actionName"],
+          lifecycleState: row.lifecycleState as ActionRequest["lifecycleState"],
+          policyDecision: row.policyDecision as ActionRequest["policyDecision"],
+          resultPayload: (row.resultPayload as Record<string, unknown> | null) ?? null,
+          createdAt: asIsoString(row.createdAt),
+          updatedAt: asIsoString(row.updatedAt)
+        }
+      : null;
+  }
+
+  async getActionRequestByApprovalId(approvalRequestId: string) {
+    const row =
+      (
+        await this.db
+          .select()
+          .from(schema.actionRequests)
+          .where(eq(schema.actionRequests.approvalRequestId, approvalRequestId))
+          .limit(1)
+      )[0] ?? null;
+    return row
+      ? {
+          ...row,
+          actionName: row.actionName as ActionRequest["actionName"],
+          lifecycleState: row.lifecycleState as ActionRequest["lifecycleState"],
+          policyDecision: row.policyDecision as ActionRequest["policyDecision"],
+          resultPayload: (row.resultPayload as Record<string, unknown> | null) ?? null,
+          createdAt: asIsoString(row.createdAt),
+          updatedAt: asIsoString(row.updatedAt)
+        }
+      : null;
+  }
+
+  async createActionRequest(input: ActionRequestInput) {
+    const now = new Date();
+    const id = createId("action-request");
+    await this.db
+      .insert(schema.actionRequests)
+      .values({
+        id,
+        orgId: input.orgId,
+        customerConfigKey: input.customerConfigKey,
+        interactionId: input.interactionId,
+        actionName: input.actionName,
+        idempotencyKey: input.idempotencyKey,
+        fingerprint: input.fingerprint,
+        lifecycleState: input.lifecycleState,
+        policyDecision: input.policyDecision,
+        approvalRequestId: null,
+        resultPayload: null,
+        errorCode: null,
+        createdAt: now,
+        updatedAt: now
+      })
+      .onConflictDoNothing({ target: schema.actionRequests.idempotencyKey });
+
+    const actionRequest = await this.getActionRequestByIdempotency(input.idempotencyKey);
+    if (!actionRequest) {
+      throw new Error(`Failed to claim action request for idempotency key ${input.idempotencyKey}`);
+    }
+
+    return { actionRequest, reused: actionRequest.id !== id };
+  }
+
+  async updateActionRequest(id: string, update: ActionRequestUpdate) {
+    const [row] = await this.db
+      .update(schema.actionRequests)
+      .set({
+        ...(update.lifecycleState ? { lifecycleState: update.lifecycleState } : {}),
+        ...(update.policyDecision ? { policyDecision: update.policyDecision } : {}),
+        ...(Object.prototype.hasOwnProperty.call(update, "approvalRequestId")
+          ? { approvalRequestId: update.approvalRequestId ?? null }
+          : {}),
+        ...(Object.prototype.hasOwnProperty.call(update, "resultPayload")
+          ? { resultPayload: update.resultPayload ?? null }
+          : {}),
+        ...(Object.prototype.hasOwnProperty.call(update, "errorCode") ? { errorCode: update.errorCode ?? null } : {}),
+        updatedAt: new Date()
+      })
+      .where(eq(schema.actionRequests.id, id))
+      .returning();
+
+    return row
+      ? {
+          ...row,
+          actionName: row.actionName as ActionRequest["actionName"],
+          lifecycleState: row.lifecycleState as ActionRequest["lifecycleState"],
+          policyDecision: row.policyDecision as ActionRequest["policyDecision"],
+          resultPayload: (row.resultPayload as Record<string, unknown> | null) ?? null,
+          createdAt: asIsoString(row.createdAt),
+          updatedAt: asIsoString(row.updatedAt)
+        }
+      : null;
+  }
+
+  /** Compare-and-set: applies `update` only if the action request is currently in one of `from`. */
+  async transitionActionRequest(id: string, from: ActionLifecycleState[], update: ActionRequestUpdate) {
+    const [row] = await this.db
+      .update(schema.actionRequests)
+      .set({
+        ...(update.lifecycleState ? { lifecycleState: update.lifecycleState } : {}),
+        ...(update.policyDecision ? { policyDecision: update.policyDecision } : {}),
+        ...(Object.prototype.hasOwnProperty.call(update, "approvalRequestId")
+          ? { approvalRequestId: update.approvalRequestId ?? null }
+          : {}),
+        ...(Object.prototype.hasOwnProperty.call(update, "resultPayload")
+          ? { resultPayload: update.resultPayload ?? null }
+          : {}),
+        ...(Object.prototype.hasOwnProperty.call(update, "errorCode") ? { errorCode: update.errorCode ?? null } : {}),
+        updatedAt: new Date()
+      })
+      .where(and(eq(schema.actionRequests.id, id), inArray(schema.actionRequests.lifecycleState, from)))
+      .returning();
+
+    return row
+      ? {
+          ...row,
+          actionName: row.actionName as ActionRequest["actionName"],
+          lifecycleState: row.lifecycleState as ActionRequest["lifecycleState"],
+          policyDecision: row.policyDecision as ActionRequest["policyDecision"],
+          resultPayload: (row.resultPayload as Record<string, unknown> | null) ?? null,
+          createdAt: asIsoString(row.createdAt),
+          updatedAt: asIsoString(row.updatedAt)
+        }
+      : null;
+  }
+
+  async recordAdapterAttempt(input: AdapterAttemptInput) {
+    const [{ count }] = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(schema.adapterAttempts)
+      .where(eq(schema.adapterAttempts.actionRequestId, input.actionRequestId));
+    const attempt: AdapterAttempt = {
+      id: createId("adapter-attempt"),
+      ...input,
+      attemptNumber: Number(count) + 1,
+      createdAt: new Date().toISOString()
+    };
+
+    await this.db.insert(schema.adapterAttempts).values({
+      ...attempt,
+      createdAt: new Date(attempt.createdAt)
+    });
+
+    return attempt;
+  }
+
+  async listAdapterAttemptsByActionRequest(actionRequestId: string) {
+    const rows = await this.db
+      .select()
+      .from(schema.adapterAttempts)
+      .where(eq(schema.adapterAttempts.actionRequestId, actionRequestId))
+      .orderBy(schema.adapterAttempts.createdAt);
+    return rows.map((row) => ({
+      ...row,
+      failureMode: row.failureMode as AdapterAttempt["failureMode"],
+      status: row.status as AdapterAttempt["status"],
+      requestPayload: row.requestPayload as Record<string, unknown>,
+      responsePayload: row.responsePayload as Record<string, unknown>,
+      createdAt: asIsoString(row.createdAt)
+    }));
+  }
+
+  async listActionRequests() {
+    const rows = await this.db.select().from(schema.actionRequests).orderBy(desc(schema.actionRequests.createdAt));
+    return rows.map((row) => ({
+      ...row,
+      actionName: row.actionName as ActionRequest["actionName"],
+      lifecycleState: row.lifecycleState as ActionRequest["lifecycleState"],
+      policyDecision: row.policyDecision as ActionRequest["policyDecision"],
+      resultPayload: (row.resultPayload as Record<string, unknown> | null) ?? null,
+      createdAt: asIsoString(row.createdAt),
+      updatedAt: asIsoString(row.updatedAt)
+    }));
   }
 
   async saveFollowup(input: { orgId: string; interactionId: string; message: string }) {
@@ -881,6 +1329,20 @@ class PostgresRepository {
       policyDecision: input.policyDecision,
       outcome: input.outcome,
       createdAt: new Date()
+    }).onConflictDoUpdate({
+      target: schema.voiceInteractions.id,
+      set: {
+        orgId: input.orgId,
+        siteId: input.siteId,
+        callerPhone: input.callerPhone,
+        callerId: input.callerId,
+        transcript: input.transcript,
+        intent: input.intent,
+        extractedFields: input.extractedFields,
+        actionAttempted: input.actionAttempted,
+        policyDecision: input.policyDecision,
+        outcome: input.outcome
+      }
     });
   }
 
@@ -1093,6 +1555,14 @@ class PostgresRepository {
   }
 
   async resetAndSeed() {
+    // Last line of defence: every script, test, and route that wipes data goes through here.
+    if (process.env.ALLOW_DESTRUCTIVE_DB_RESET !== "1") {
+      throw new Error(
+        "Refusing to reset a configured Postgres database. This deletes every row in DATABASE_URL; " +
+          "use a disposable database and set ALLOW_DESTRUCTIVE_DB_RESET=1 to proceed."
+      );
+    }
+
     await this.db.delete(schema.evalResults);
     await this.db.delete(schema.evalRuns);
     await this.db.delete(schema.messageFollowups);
@@ -1100,6 +1570,8 @@ class PostgresRepository {
     await this.db.delete(schema.webhookEvents);
     await this.db.delete(schema.voiceActionLogs);
     await this.db.delete(schema.voiceInteractions);
+    await this.db.delete(schema.adapterAttempts);
+    await this.db.delete(schema.actionRequests);
     await this.db.delete(schema.siteIssues);
     await this.db.delete(schema.approvalRequests);
     await this.db.delete(schema.requisitionLines);
@@ -1115,19 +1587,26 @@ class PostgresRepository {
     await this.db.delete(schema.sites);
     await this.db.delete(schema.users);
     await this.db.delete(schema.roles);
+    await this.db.delete(schema.customerConfigs);
     await this.db.delete(schema.organizations);
 
-    await this.db.insert(schema.organizations).values(seedDatabase.organizations);
-    await this.db.insert(schema.roles).values(seedDatabase.roles);
-    await this.db.insert(schema.users).values(seedDatabase.users);
-    await this.db.insert(schema.sites).values(seedDatabase.sites);
-    await this.db.insert(schema.phoneIdentities).values(seedDatabase.phoneIdentities);
-    await this.db.insert(schema.userSiteAccess).values(seedDatabase.userSiteAccess);
+    await this.insertIfAny(schema.organizations, seedDatabase.organizations);
+    await this.db.insert(schema.customerConfigs).values(
+      seedDatabase.customerConfigs.map((item) => ({
+        ...item,
+        materialApprovalLimit: item.materialApprovalLimit.toString()
+      }))
+    );
+    await this.insertIfAny(schema.roles, seedDatabase.roles);
+    await this.insertIfAny(schema.users, seedDatabase.users);
+    await this.insertIfAny(schema.sites, seedDatabase.sites);
+    await this.insertIfAny(schema.phoneIdentities, seedDatabase.phoneIdentities);
+    await this.insertIfAny(schema.userSiteAccess, seedDatabase.userSiteAccess);
     await this.db.insert(schema.materials).values(
       seedDatabase.materials.map((item) => ({ ...item, unitCost: item.unitCost.toString() }))
     );
-    await this.db.insert(schema.vendors).values(seedDatabase.vendors);
-    await this.db.insert(schema.siteStock).values(seedDatabase.siteStock);
+    await this.insertIfAny(schema.vendors, seedDatabase.vendors);
+    await this.insertIfAny(schema.siteStock, seedDatabase.siteStock);
     await this.db.insert(schema.budgets).values(
       seedDatabase.budgets.map((item) => ({
         ...item,
@@ -1139,10 +1618,13 @@ class PostgresRepository {
     await this.db.insert(schema.vendorInvoices).values(
       seedDatabase.vendorInvoices.map((item) => ({ ...item, amount: item.amount.toString() }))
     );
-    await this.db.insert(schema.requisitions).values(
+    await this.insertIfAny(
+      schema.requisitions,
       seedDatabase.requisitions.map((item) => ({ ...item, totalCost: item.totalCost.toString() }))
     );
-    await this.db.insert(schema.requisitionLines).values(seedDatabase.requisitionLines);
+    await this.insertIfAny(schema.requisitionLines, seedDatabase.requisitionLines);
+    await this.insertIfAny(schema.approvalRequests, seedDatabase.approvalRequests);
+    await this.insertIfAny(schema.siteIssues, seedDatabase.siteIssues);
   }
 }
 

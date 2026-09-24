@@ -3,6 +3,8 @@ import { blandVariablesSchema, extractionModeSchema, extractionSourceSchema } fr
 import {
   extractedFieldsSchema,
   guardrailCodeSchema,
+  nextStepDirectiveSchema,
+  nextStepReasonCodeSchema,
   intentSchema,
   interactionContextSchema,
   policyEngineDecisionSchema,
@@ -12,7 +14,21 @@ import {
 const timelineStepSchema = z.object({
   step: z.string(),
   timestamp: z.string(),
-  status: z.enum(["completed", "blocked", "clarification_needed", "failed", "skipped"]),
+  status: z.enum([
+    "completed",
+    "blocked",
+    "clarification_needed",
+    "failed",
+    "skipped",
+    "approval_pending",
+    "executing",
+    "human_review_required",
+    "reconciliation_required",
+    "failed_retryable",
+    "failed_terminal",
+    "recovered",
+    "replayed"
+  ]),
   inputSummary: z.string(),
   outputSummary: z.string(),
   latencyMs: z.number(),
@@ -68,10 +84,23 @@ export const actionEnvelopeSchema = z.object({
     })
   ),
   relatedRecords: z.object({
+    actionRequestId: z.string().optional(),
     requisitionId: z.string().optional(),
     approvalRequestId: z.string().optional(),
     siteIssueId: z.string().optional(),
     purchaseOrderId: z.string().optional()
+  }),
+  nextStep: z.object({
+    directive: nextStepDirectiveSchema,
+    reasonCode: nextStepReasonCodeSchema,
+    requiredFields: z.array(z.string()).default([]),
+    safeExplanation: z.string(),
+    actionRequestId: z.string().optional(),
+    approvalRequestId: z.string().optional(),
+    operatorInterventionRequired: z.boolean(),
+    canRetry: z.boolean(),
+    canReconcile: z.boolean(),
+    context: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.array(z.string())])).default({})
   }),
   timeline: z.array(timelineStepSchema),
   data: z.record(z.string(), z.unknown()).default({}),
@@ -147,20 +176,39 @@ export const runScenarioRequestSchema = z.object({
   callerPhone: z.string(),
   idempotencyKey: z.string(),
   extractionMode: extractionModeSchema.optional(),
-  variables: blandVariablesSchema.optional()
+  variables: blandVariablesSchema.optional(),
+  customerConfigKey: z.string().optional(),
+  sourceMetadata: z.record(z.string(), z.unknown()).optional()
 });
 
 export const blandWebhookRequestSchema = z.object({
   call_id: z.string(),
-  caller_phone: z.string(),
-  transcript: z.string(),
+  caller_phone: z.string().optional(),
+  from: z.string().optional(),
+  transcript: z.string().optional(),
+  lastUserMessage: z.string().optional(),
   variables: blandVariablesSchema.optional(),
+  request_data: z.record(z.string(), z.unknown()).optional(),
   metadata: z
     .object({
       pathway_id: z.string().optional(),
-      node_id: z.string().optional()
+      pathway_version: z.number().optional(),
+      node_id: z.string().optional(),
+      customer_key: z.string().optional(),
+      deployment_id: z.string().optional()
     })
-    .optional()
+    .catchall(z.unknown())
+    .optional(),
+  pathway_id: z.string().optional(),
+  pathway_version: z.number().optional(),
+  node_id: z.string().optional()
+}).refine((value) => Boolean(value.caller_phone ?? value.from), {
+  message: "caller_phone or from is required",
+  path: ["caller_phone"]
+}).refine((value) => Boolean(value.transcript ?? value.lastUserMessage), {
+  message: "transcript or lastUserMessage is required",
+  path: ["transcript"]
 });
 
 export type ActionEnvelope = z.infer<typeof actionEnvelopeSchema>;
+export type NextStepDirective = z.infer<typeof nextStepDirectiveSchema>;

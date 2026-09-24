@@ -6,6 +6,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   varchar
 } from "drizzle-orm/pg-core";
 
@@ -13,6 +14,24 @@ export const organizations = pgTable("organizations", {
   id: varchar("id", { length: 64 }).primaryKey(),
   name: text("name").notNull()
 });
+
+export const customerConfigs = pgTable(
+  "customer_configs",
+  {
+    id: varchar("id", { length: 64 }).primaryKey(),
+    orgId: varchar("org_id", { length: 64 }).notNull(),
+    key: varchar("key", { length: 64 }).notNull(),
+    name: text("name").notNull(),
+    allowedSiteIds: jsonb("allowed_site_ids").notNull(),
+    rolePermissions: jsonb("role_permissions").notNull(),
+    financeVisibleRoles: jsonb("finance_visible_roles").notNull(),
+    materialApprovalLimit: numeric("material_approval_limit", { precision: 12, scale: 2 }).notNull(),
+    escalationRules: jsonb("escalation_rules").notNull(),
+    blandPathwayMappings: jsonb("bland_pathway_mappings").notNull(),
+    policyVersion: text("policy_version").notNull()
+  },
+  (table) => [uniqueIndex("customer_configs_key_idx").on(table.key)]
+);
 
 export const roles = pgTable("roles", {
   id: varchar("id", { length: 64 }).primaryKey(),
@@ -101,7 +120,9 @@ export const vendorInvoices = pgTable("vendor_invoices", {
   amount: numeric("amount", { precision: 12, scale: 2 }).notNull()
 });
 
-export const requisitions = pgTable("requisitions", {
+export const requisitions = pgTable(
+  "requisitions",
+  {
   id: varchar("id", { length: 64 }).primaryKey(),
   orgId: varchar("org_id", { length: 64 }).notNull(),
   siteId: varchar("site_id", { length: 64 }).notNull(),
@@ -111,7 +132,9 @@ export const requisitions = pgTable("requisitions", {
   interactionId: varchar("interaction_id", { length: 64 }).notNull(),
   totalCost: numeric("total_cost", { precision: 12, scale: 2 }).notNull(),
   neededBy: text("needed_by").notNull()
-});
+  },
+  (table) => [uniqueIndex("requisitions_idempotency_key_idx").on(table.idempotencyKey)]
+);
 
 export const requisitionLines = pgTable("requisition_lines", {
   id: varchar("id", { length: 64 }).primaryKey(),
@@ -121,7 +144,9 @@ export const requisitionLines = pgTable("requisition_lines", {
   quantity: integer("quantity").notNull()
 });
 
-export const approvalRequests = pgTable("approval_requests", {
+export const approvalRequests = pgTable(
+  "approval_requests",
+  {
   id: varchar("id", { length: 64 }).primaryKey(),
   orgId: varchar("org_id", { length: 64 }).notNull(),
   siteId: varchar("site_id", { length: 64 }).notNull(),
@@ -130,9 +155,13 @@ export const approvalRequests = pgTable("approval_requests", {
   reason: text("reason").notNull(),
   status: text("status").notNull(),
   idempotencyKey: text("idempotency_key").notNull()
-});
+  },
+  (table) => [uniqueIndex("approval_requests_idempotency_key_idx").on(table.idempotencyKey)]
+);
 
-export const siteIssues = pgTable("site_issues", {
+export const siteIssues = pgTable(
+  "site_issues",
+  {
   id: varchar("id", { length: 64 }).primaryKey(),
   orgId: varchar("org_id", { length: 64 }).notNull(),
   siteId: varchar("site_id", { length: 64 }).notNull(),
@@ -141,6 +170,44 @@ export const siteIssues = pgTable("site_issues", {
   severity: text("severity").notNull(),
   summary: text("summary").notNull(),
   idempotencyKey: text("idempotency_key").notNull()
+  },
+  (table) => [uniqueIndex("site_issues_idempotency_key_idx").on(table.idempotencyKey)]
+);
+
+export const actionRequests = pgTable(
+  "action_requests",
+  {
+    id: varchar("id", { length: 64 }).primaryKey(),
+    orgId: varchar("org_id", { length: 64 }).notNull(),
+    customerConfigKey: varchar("customer_config_key", { length: 64 }).notNull(),
+    interactionId: varchar("interaction_id", { length: 64 }).notNull(),
+    actionName: text("action_name").notNull(),
+    idempotencyKey: text("idempotency_key").notNull(),
+    fingerprint: text("fingerprint").notNull(),
+    lifecycleState: text("lifecycle_state").notNull(),
+    policyDecision: text("policy_decision").notNull(),
+    approvalRequestId: varchar("approval_request_id", { length: 64 }),
+    resultPayload: jsonb("result_payload"),
+    errorCode: text("error_code"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull()
+  },
+  (table) => [
+    uniqueIndex("action_requests_idempotency_key_idx").on(table.idempotencyKey)
+  ]
+);
+
+export const adapterAttempts = pgTable("adapter_attempts", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  orgId: varchar("org_id", { length: 64 }).notNull(),
+  actionRequestId: varchar("action_request_id", { length: 64 }).notNull(),
+  adapterName: text("adapter_name").notNull(),
+  attemptNumber: integer("attempt_number").notNull(),
+  failureMode: text("failure_mode").notNull(),
+  status: text("status").notNull(),
+  requestPayload: jsonb("request_payload").notNull(),
+  responsePayload: jsonb("response_payload").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull()
 });
 
 export const voiceInteractions = pgTable("voice_interactions", {

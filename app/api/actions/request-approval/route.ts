@@ -1,3 +1,4 @@
+import { requireOperator } from "@/lib/auth/operator";
 import { NextResponse } from "next/server";
 import { createActionLog, createGuardrailEvents, createWebhookEvent } from "@/lib/actions/audit";
 import { requestApproval } from "@/lib/actions/approvals";
@@ -8,6 +9,11 @@ import { siteAccessAllowed } from "@/lib/policies/rules";
 import { requestApprovalRequestSchema } from "@/lib/schemas/actions";
 
 export async function POST(request: Request) {
+  const auth = requireOperator(request);
+  if (!auth.ok) {
+    return auth.response;
+  }
+
   const parsed = await parseJson(request, requestApprovalRequestSchema);
   if (!parsed.success) {
     return badRequest([{ code: "invalid_request", message: parsed.error.message }]);

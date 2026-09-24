@@ -22,6 +22,15 @@ async function main() {
     return;
   }
 
+  if (process.env.ALLOW_DESTRUCTIVE_DB_RESET !== "1") {
+    console.error(
+      "verify:db pushes the schema and DELETES ALL ROWS in DATABASE_URL before reseeding. " +
+        "Use a disposable database and re-run with ALLOW_DESTRUCTIVE_DB_RESET=1."
+    );
+    process.exitCode = 1;
+    return;
+  }
+
   execSync("npx drizzle-kit push", { stdio: "inherit" });
   const repo = getRepository("postgres");
   await repo.resetAndSeed();

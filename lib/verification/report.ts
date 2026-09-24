@@ -38,6 +38,9 @@ export function writeTraceVerificationReport(traces: ScenarioGroupTrace[]) {
       lines.push(`- Action attempted: ${trace.response.action}`);
       lines.push(`- Final outcome: ${trace.response.outcome}`);
       lines.push(
+        `- Policy-derived next step: ${trace.response.nextStep.directive} (${trace.response.nextStep.reasonCode})`
+      );
+      lines.push(
         `- Created record ids: requisitions=${trace.requisitionIds.join(",") || "none"}, approvals=${trace.approvalIds.join(",") || "none"}, escalations=${trace.siteIssueIds.join(",") || "none"}, followup=${trace.followupId ?? "none"}`
       );
       lines.push(`- Audit log ids/count: ${trace.actionLogIds.join(", ") || "none"} / ${trace.actionLogIds.length}`);

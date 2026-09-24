@@ -4,7 +4,7 @@ import { runEvalSuite } from "@/lib/eval/runner";
 async function main() {
   const result = await runEvalSuite();
 
-  console.log("Voice Agent Deployment Lab Eval Results");
+  console.log("Voice Agent Deployment Lab: deterministic policy regression");
   console.log(`Scenarios: ${result.summary.total}`);
   console.log(`Passed: ${result.summary.passed}`);
   console.log(`Failed: ${result.summary.failed}`);

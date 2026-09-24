@@ -2,6 +2,62 @@ import type { DemoDatabase } from "@/lib/db/types";
 
 export const seedDatabase: DemoDatabase = {
   organizations: [{ id: "org-ventra", name: "Ventra Build Group" }],
+  customerConfigs: [
+    {
+      id: "config-ventra",
+      orgId: "org-ventra",
+      key: "ventra",
+      name: "Ventra Build Group",
+      allowedSiteIds: ["site-a", "site-b"],
+      rolePermissions: {
+        site_manager: ["create_material_request", "check_stock", "check_po_status", "escalate_site_issue"],
+        procurement_manager: [
+          "create_material_request",
+          "check_stock",
+          "check_po_status",
+          "check_vendor_payment",
+          "escalate_site_issue"
+        ],
+        finance_analyst: ["check_stock", "check_po_status", "check_vendor_payment"],
+        field_engineer: ["check_stock", "check_po_status", "escalate_site_issue"],
+        guest: []
+      },
+      financeVisibleRoles: ["finance_analyst", "procurement_manager"],
+      materialApprovalLimit: 4800,
+      escalationRules: {
+        urgentIssueSeverity: "high",
+        afterHoursEscalation: true
+      },
+      blandPathwayMappings: {
+        deploymentId: "voicelab-ventra-demo"
+      },
+      policyVersion: "ventra-policy-v2"
+    },
+    {
+      id: "config-northstar",
+      orgId: "org-ventra",
+      key: "northstar",
+      name: "Northstar Civil Works",
+      allowedSiteIds: ["site-a"],
+      rolePermissions: {
+        site_manager: ["check_stock", "check_po_status", "escalate_site_issue"],
+        procurement_manager: ["create_material_request", "check_stock", "check_po_status", "escalate_site_issue"],
+        finance_analyst: ["check_stock", "check_po_status"],
+        field_engineer: ["check_stock"],
+        guest: []
+      },
+      financeVisibleRoles: [],
+      materialApprovalLimit: 1000,
+      escalationRules: {
+        urgentIssueSeverity: "high",
+        afterHoursEscalation: false
+      },
+      blandPathwayMappings: {
+        deploymentId: "voicelab-northstar-demo"
+      },
+      policyVersion: "northstar-policy-v2"
+    }
+  ],
   roles: [
     { id: "role-site-manager", orgId: "org-ventra", name: "site_manager" },
     { id: "role-procurement", orgId: "org-ventra", name: "procurement_manager" },
@@ -99,6 +155,8 @@ export const seedDatabase: DemoDatabase = {
   requisitionLines: [],
   approvalRequests: [],
   siteIssues: [],
+  actionRequests: [],
+  adapterAttempts: [],
   voiceInteractions: [],
   voiceActionLogs: [],
   webhookEvents: [],
