@@ -1,0 +1,77 @@
+{
+  "checkedAt": "2026-09-18T18:55:13Z",
+  "bland": {
+    "pathwayId": "2f611f4a-6413-406a-b46b-7825932a52d7",
+    "pathwayName": "VoiceLab V2 UI Verification",
+    "surface": "Bland Console Webhook node Test API Request",
+    "webhookConfiguration": {
+      "method": "POST",
+      "url": "https://<temporary-deployment>.vercel.app/api/bland/webhook",
+      "authorizationAttempt": {
+        "type": "Built-in Bearer authorization",
+        "result": "Request failed with status 401"
+      },
+      "workingAuth": {
+        "header": "x-bland-webhook-secret",
+        "value": "<redacted temporary webhook secret>"
+      },
+      "body": {
+        "call_id": "ui-bland-webhook-clean-1789757657792",
+        "caller_phone": "+15550000001",
+        "lastUserMessage": "This is Raj from Site A. We need 7 steel rods by Sunday.",
+        "request_data": {
+          "customer_key": "ventra"
+        },
+        "pathway_id": "2f611f4a-6413-406a-b46b-7825932a52d7",
+        "pathway_version": 2,
+        "node_id": "ui-webhook-node",
+        "variables": {
+          "intent": "create_material_request",
+          "site_name": "Site A",
+          "material_name": "steel rods",
+          "quantity": 7,
+          "needed_by": "2026-09-20"
+        }
+      }
+    },
+    "uiResponse": {
+      "status": "success",
+      "speak": "Raj Patel, your voice request was completed: Created requisition req-9ab61a6b-ca43-483a-95dc-59fe09502108 for 7 steel rods.",
+      "interaction_id": "ui-bland-webhook-clean-1789757657792",
+      "action_id": "create_material_request",
+      "guardrails": [],
+      "required_clarifications": [],
+      "next_step": {
+        "directive": "continue",
+        "reason_code": "COMPLETED",
+        "required_fields": [],
+        "safe_explanation": "Created requisition req-9ab61a6b-ca43-483a-95dc-59fe09502108 for 7 steel rods.",
+        "action_request_id": "action-request-c5fec67d-4c9b-40ea-9bda-a978ff31659e",
+        "operator_intervention_required": false,
+        "can_retry": false,
+        "can_reconcile": false,
+        "context": {}
+      }
+    }
+  },
+  "backendCorrelation": {
+    "callId": "ui-bland-webhook-clean-1789757657792",
+    "actionRequestId": "action-request-c5fec67d-4c9b-40ea-9bda-a978ff31659e",
+    "lifecycleState": "succeeded",
+    "policyDecision": "allowed",
+    "actionName": "create_material_request",
+    "requisitionId": "req-9ab61a6b-ca43-483a-95dc-59fe09502108",
+    "totalCost": "840.00",
+    "neededBy": "2026-09-20",
+    "quantity": 7,
+    "materialName": "steel rods",
+    "intent": "create_material_request",
+    "interactionPolicyDecision": "allowed",
+    "webhookEventCount": 3
+  },
+  "notes": [
+    "A direct authenticated preflight to the same deployment also returned HTTP 200 with status=success and next_step.directive=continue; see ui-direct-control-latest.json.",
+    "The first successful Bland UI request used a duplicated cement payload and correctly returned duplicate_request/POLICY_BLOCKED, proving policy handling through the UI path.",
+    "The clean Bland UI request used a unique safe steel rods payload and returned success/COMPLETED/continue."
+  ]
+}

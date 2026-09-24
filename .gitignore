@@ -1,7 +1,13 @@
 .next
 node_modules
-.env.local
-.env
 dist
 coverage
 drizzle
+.DS_Store
+tsconfig.tsbuildinfo
+.vercel
+.env*
+!.env.example
+.gstack/
+.agents/
+skills-lock.json

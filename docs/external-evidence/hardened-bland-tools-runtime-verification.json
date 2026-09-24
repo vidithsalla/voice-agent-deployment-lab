@@ -1,0 +1,78 @@
+{
+  "checkedAt": "2026-09-24T20:55:45Z",
+  "mode": "current_hardened_runtime_verification",
+  "temporaryResources": {
+    "vercelProject": "voicelab-hardened-ui-1789837651",
+    "vercelDeployment": "https://<temporary-deployment>.vercel.app",
+    "neonResource": "voicelab-v2-runtime-1789837651",
+    "blandPathwayId": "ed02d139-a296-4505-ae41-3a9092575d58",
+    "cleanup": {
+      "blandPathwayDeleted": true,
+      "vercelProjectDeleted": true,
+      "neonResourceDeleted": true,
+      "deploymentAfterDelete": "404 DEPLOYMENT_NOT_FOUND",
+      "localTemporaryFilesRemoved": true
+    }
+  },
+  "databaseVerification": {
+    "database": "dedicated temporary Neon resource",
+    "tableCount": 26,
+    "expectedUniqueIndexes": [
+      "action_requests_idempotency_key_idx",
+      "approval_requests_idempotency_key_idx",
+      "customer_configs_key_idx",
+      "requisitions_idempotency_key_idx",
+      "site_issues_idempotency_key_idx"
+    ],
+    "seededTenant": "ventra",
+    "seededCaller": "+15550000001",
+    "verifyDbResult": "passed"
+  },
+  "directPreflight": {
+    "surface": "direct authenticated POST to /api/bland/webhook",
+    "httpStatus": 200,
+    "status": "success",
+    "actionId": "create_material_request",
+    "nextStepDirective": "continue",
+    "reasonCode": "COMPLETED"
+  },
+  "blandUiVerification": {
+    "surface": "Bland Console Tools / Custom API test runner",
+    "note": "The Bland Console redirected legacy Webhook-node configuration toward the current Tools / Custom API flow. This live Bland UI flow still sent the authenticated HTTP request to the VoiceLab webhook.",
+    "callId": "bland-curl-ui-hardened-1789837651",
+    "httpStatus": 200,
+    "status": "success",
+    "actionId": "create_material_request",
+    "speakContains": "Created requisition req-436892ad-219b-4040-8377-1568d81ef0eb for 13 cement.",
+    "replay": {
+      "httpStatus": 200,
+      "status": "success",
+      "speakContains": "Replayed idempotent requisition req-436892ad-219b-4040-8377-1568d81ef0eb for 13 cement."
+    }
+  },
+  "backendCorrelation": {
+    "callId": "bland-curl-ui-hardened-1789837651",
+    "countsAfterReplay": {
+      "voiceInteractions": 1,
+      "actionRequests": 1,
+      "requisitions": 1,
+      "requisitionLines": 1
+    },
+    "actionRequestId": "action-request-9ba6dca5-a9dd-4ac0-b71d-9825d353c5df",
+    "lifecycleState": "succeeded",
+    "policyDecision": "allowed",
+    "requisitionId": "req-436892ad-219b-4040-8377-1568d81ef0eb",
+    "totalCost": "156.00",
+    "neededBy": "2026-10-01"
+  },
+  "secrets": {
+    "temporaryWebhookSecret": "redacted and deleted",
+    "repositoryEvidenceContainsSecret": false
+  },
+  "limits": [
+    "No live phone call was made.",
+    "No paid Bland credit purchase was made.",
+    "No permanent Vercel deployment remains.",
+    "The temporary Neon resource was deleted after verification."
+  ]
+}

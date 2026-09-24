@@ -1,8 +1,8 @@
-# Deployment Readiness Report
+# Deployment Readiness Report (deterministic policy regression)
 
 ## Summary
 
-This deployment harness ran 50 regression scenarios through the shared voice action gateway.
+This harness ran 50 scripted policy regression scenarios through the shared voice action gateway. "Ready" means those scenarios passed with no unsafe mutation; it does not assess conversation quality or live traffic.
 
 ## Readiness Signals
 

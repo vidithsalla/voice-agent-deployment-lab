@@ -1,0 +1,13 @@
+{
+  "timestamp": "2026-09-18T18:56:12.609Z",
+  "pathwayId": "2f611f4a-6413-406a-b46b-7825932a52d7",
+  "operation": "delete UI-created Bland Pathway after real webhook verification",
+  "httpStatus": 200,
+  "ok": true,
+  "response": {
+    "data": {
+      "message": "Graph deleted successfully"
+    },
+    "errors": null
+  }
+}

@@ -1,4 +1,6 @@
-# Eval Results
+# Eval Results (deterministic policy regression)
+
+These figures come from a fixed set of scripted scenarios run through the deterministic policy gateway. They are not a model-quality, telephony, or production-reliability measurement.
 
 - Total scenarios: 50
 - Passed: 50

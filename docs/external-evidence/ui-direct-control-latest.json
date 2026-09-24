@@ -1,0 +1,26 @@
+{
+  "timestamp": "2026-09-18T18:46:33.424Z",
+  "target": "https://<temporary-deployment>.vercel.app/api/bland/webhook",
+  "auth": "Authorization: Bearer <redacted temp webhook secret>",
+  "httpStatus": 200,
+  "callId": "ui-direct-control-1789757193",
+  "response": {
+    "status": "success",
+    "speak": "Raj Patel, your voice request was completed: Created requisition req-76e8392d-2b83-4550-9b0d-3f7d37d51d04 for 40 cement.",
+    "interaction_id": "ui-direct-control-1789757193",
+    "action_id": "create_material_request",
+    "guardrails": [],
+    "required_clarifications": [],
+    "next_step": {
+      "directive": "continue",
+      "reason_code": "COMPLETED",
+      "required_fields": [],
+      "safe_explanation": "Created requisition req-76e8392d-2b83-4550-9b0d-3f7d37d51d04 for 40 cement.",
+      "action_request_id": "action-request-3086018d-0ebe-4d39-9b68-d2d51a1f0e26",
+      "operator_intervention_required": false,
+      "can_retry": false,
+      "can_reconcile": false,
+      "context": {}
+    }
+  }
+}

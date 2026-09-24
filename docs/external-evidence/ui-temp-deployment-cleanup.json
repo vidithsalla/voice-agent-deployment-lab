@@ -1,0 +1,24 @@
+{
+  "checkedAt": "2026-09-18T18:56:35Z",
+  "vercel": {
+    "project": "voicelab-bland-ui-1789757012",
+    "deploymentId": "dpl_Hh3QecneLgeoPwHDcUQdt48pj8WW",
+    "deploymentUrl": "https://<temporary-deployment>.vercel.app",
+    "projectRemoveResult": "Success! Project voicelab-bland-ui-1789757012 removed",
+    "projectListVerification": "project absent from Vercel project list",
+    "deploymentInspectVerification": "Can't find the deployment dpl_Hh3QecneLgeoPwHDcUQdt48pj8WW under the owning Vercel scope",
+    "dynamicWebhookPostAfterDeletion": {
+      "endpoint": "/api/bland/webhook",
+      "httpStatus": 410
+    }
+  },
+  "bland": {
+    "pathwayId": "2f611f4a-6413-406a-b46b-7825932a52d7",
+    "deleteHttpStatus": 200,
+    "deleteMessage": "Graph deleted successfully"
+  },
+  "secrets": {
+    "temporaryWebhookSecret": "deleted after cleanup",
+    "repositoryEvidenceContainsSecret": false
+  }
+}

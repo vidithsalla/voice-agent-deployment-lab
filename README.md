@@ -1,288 +1,90 @@
-# Voice Agent Deployment Lab
+# Voice Agent Deployment Lab (VoiceLab)
 
-Production-style harness for deploying enterprise voice agents into real business workflows safely.
+Bland handles the conversation. VoiceLab governs whether that conversation can become a real business-system side effect, executes or gates it safely, and returns the policy-derived next required step.
 
-## Why This Exists
+The domain is a construction ERP (material requests, stock, purchase orders, vendor payments, site issues). The ERP is a mock.
 
-Voice agents are easy to demo and hard to deploy safely. The hard part is not getting a model to talk. The hard part is turning a call into a typed backend action only after identity, permissions, policy, budget, duplication, and audit checks pass.
+**External verification:** verified against a real Bland Webhook node with authenticated execution and Neon-backed persistence. A Bland Console Webhook node called a temporary public deployment and got `status=success`, `next_step.directive=continue`; the resulting action and requisition were read back from Neon. That deployment and Pathway were deleted afterwards. Not verified: live phone calls, Pathway routing on directives other than `continue`, Bland Agent Testing, a real ERP, production traffic. Evidence and its limits: [docs/external-evidence/](docs/external-evidence/README.md).
 
-This project focuses on that deployment layer.
+![Successful action trace](docs/screenshots/01-successful-action-trace.png)
 
-## What This Is Not
+## The boundary
 
-- not a voice model
-- not a telephony platform
-- not a Bland replacement
-- not a production deployment claim
+| Bland owns | VoiceLab owns |
+|---|---|
+| Telephony, the conversation, asking follow-up questions | Structured request validation, caller identity, deterministic policy, approvals |
+| Extracting variables from speech | Idempotent, safe writes; reconciliation; audit |
+| How to phrase things to the caller | What business state is required next, returned as `next_step.directive` |
 
-This project does not try to build a voice model or replace Bland. It focuses on the layer around a voice agent that enterprise deployments need: typed actions, policy enforcement, audit logs, and regression testing.
+`next_step.directive` is one of `continue`, `clarify`, `await_approval`, `handoff_to_human`, `retry_later`, `reconcile`. It is computed from internal state by one function ([lib/actions/next-step.ts](lib/actions/next-step.ts)); nothing upstream can set it.
 
-## Core Deployment Loop
+## Decisions this project is built around
 
-```txt
-transcript -> extraction -> caller -> policy -> action -> audit -> eval
-```
+- **LLMs extract; they never authorize.** Upstream fields (`authorized`, `approval_required`, role claims, inferred values) cannot change a decision. Caller identity comes from a phone lookup, and policy is deterministic code plus per-customer config.
+- **Missing data: clarify first**, hand off to a human if clarification is impossible, and never infer required facts.
+- **Reads may retry. Writes retry only when VoiceLab knows the earlier attempt did not mutate anything.**
+- **Unknown outcome means reconcile before retry.** See below.
+- **No generic bypass.** Higher authority exists only where a customer's config grants it. Operators can approve, reject, reconcile, and retry when safe. There is no "ignore policy and execute".
+- **Customers differ in data, not code:** allowed sites, role permissions, finance visibility, approval limit. Two are seeded (Ventra, Northstar). An unknown or missing customer key on the webhook fails closed; there is no fallback tenant.
+- **Idempotency is checked against the request, not just the key.** Same key and same request replays. Same key and a different request is refused and handed to a human.
 
-That loop is shared across:
+## The hardest case: mutation succeeds, response lost
 
-- simulator runs
-- `POST /api/demo/run-scenario`
-- `POST /api/bland/webhook`
-- `npm run eval`
-- `npm run verify:trace`
+1. VoiceLab sends a write to the downstream system; the write happens, the response never arrives.
+2. The action becomes `reconciliation_required` and Bland is told `reconcile`. Retry is refused.
+3. Reconciliation asks the downstream whether a mutation with our correlation key exists. The caller cannot supply the answer.
+4. Found: the action is `recovered` and no second write happens. Not found: retry becomes allowed. Downstream unavailable: `human_review_required`.
 
-## Architecture
+Every step is recorded as an adapter attempt and audit row, and shown in the call trace. The lost response is simulated (the mock ERP performs the write and then hides the result); the lifecycle, the refusal to retry, the lookup, and the audit trail are real code paths.
 
-- `lib/actions/action-gateway.ts`: shared orchestration entrypoint
-- `lib/extraction/*`: deterministic, optional LLM, and Bland-variable extraction modes
-- `lib/policies/*`: data-driven policy engine and RBAC checks
-- `lib/actions/*`: typed backend service layer
-- `lib/db/repository.ts`: repository abstraction with Postgres or in-memory fallback
-- `app/*`: simulator, dashboard, call detail, approvals, and eval UI
-- `eval/scenarios/*`: regression suite
-- `pathways/*`: pathway-as-code handoff configs
+## What is real and what is simulated
 
-## Demo Workflows
+| Real | Simulated |
+|---|---|
+| Webhook auth, policy, tenant config, idempotency, approvals, reconciliation state machine, audit, `next_step` | The ERP (rows in the same database) and its failure modes |
+| Neon/Postgres persistence and unique-index idempotency (in-memory fallback for local runs) | Follow-up messages (stored, not sent) |
+| One real Bland Webhook-node call (see evidence) | Phone calls: none were placed |
 
-- valid material request creates a requisition
-- missing required field returns clarification
-- over-budget request routes to approval
-- unknown caller cannot mutate data
-- duplicate request does not create duplicate state
-- non-finance caller cannot view vendor payment data
-- finance-authorized caller can view vendor payment data
-- PO status lookup stays read-only
-- urgent site issue creates an escalation
-- approval bypass attempt is blocked and logged
-
-## Extraction Modes
-
-### `deterministic`
-
-- default mode
-- used by evals and trace verification
-- stable and reproducible
-- no external APIs
-
-### `llm`
-
-- optional mode
-- enabled only when `OPENAI_API_KEY` is set
-- returns the same typed schema as deterministic extraction
-- fails closed into clarification rather than unsafe action
-
-### `bland_variables`
-
-- used by `POST /api/bland/webhook`
-- validates and normalizes pathway variables
-- still relies on the policy engine for authorization
-
-## Bland Webhook Compatibility
-
-The project includes a Bland-style ingestion endpoint:
-
-- `POST /api/bland/webhook`
-
-It accepts transcript plus extracted variables, normalizes them into the shared extraction schema, and then calls the same `runVoiceAction` path used by simulator and evals.
-
-See [docs/Bland-integration.md](/Users/vidithreddy/voice-agent-deployment-lab/docs/Bland-integration.md).
-
-## Pathway-As-Code
-
-The `pathways/` directory contains handoff-style configs for:
-
-- material request
-- stock check
-- PO status
-- vendor payment
-- site issue escalation
-
-These are not auto-imports. They are artifacts that show how a deployment engineer could define the pathway contract next to the action gateway.
-
-## Policy Engine And Guardrails
-
-The policy engine is data-driven, not scenario-driven.
-
-Checks include:
-
-- caller known
-- site access allowed
-- role can create requisition
-- role can view finance
-- required fields present
-- budget within limit
-- duplicate request check
-- approval bypass attempt
-- emergency escalation
-- read-only access allowed
-- authorized caller required for mutation
-
-Guardrails include:
-
-- `unknown_caller`
-- `site_access_denied`
-- `missing_required_fields`
-- `budget_exceeded`
-- `restricted_finance_access`
-- `duplicate_request`
-- `approval_bypass_attempt`
-- `emergency_escalation`
-- `extraction_failed`
-
-## Action Gateway
-
-`runVoiceAction` is the center of the system.
-
-It:
-
-1. accepts transcript or normalized variables
-2. extracts intent and fields
-3. resolves caller from phone number
-4. evaluates policy
-5. executes, blocks, clarifies, routes, or escalates
-6. writes audit and webhook trace records
-7. stores follow-up text
-8. returns a typed response with a decision timeline
-
-## Auditability And Observability
-
-Every orchestration run records:
-
-- interaction record
-- action log
-- webhook event
-- guardrail events when triggered
-- follow-up record
-
-Write-side sub-actions also record their own trace rows.
-
-The call detail page and trace report expose a full timeline:
-
-- transcript received
-- extraction completed
-- caller resolved
-- policy evaluated
-- action attempted
-- audit log written
-- follow-up generated
-
-## Eval Harness
-
-`npm run eval` runs 50 scenarios through the shared action gateway and writes:
-
-- [docs/eval-results.md](/Users/vidithreddy/voice-agent-deployment-lab/docs/eval-results.md)
-- [docs/deployment-readiness-report.md](/Users/vidithreddy/voice-agent-deployment-lab/docs/deployment-readiness-report.md)
-
-Current proof lines:
-
-- `npm run eval`
-- `npm run verify:trace`
-- `npm test`
-- eval scenario count: `50`
-- unsafe action count: `0`
-- audit coverage: `100%`
-- readiness status: `ready`
-
-## Deployment Readiness Report
-
-Readiness is `ready` only if:
-
-- unsafe action count is `0`
-- critical scenarios pass
-- audit coverage is `100%`
-
-It becomes `conditionally_ready` when non-critical failures remain, and `not_ready` if unsafe mutations or audit gaps appear.
-
-## Screenshots
-
-Screenshot placeholders live in [docs/screenshots](/Users/vidithreddy/voice-agent-deployment-lab/docs/screenshots):
-
-- simulator
-- call detail
-- policy trace
-- approvals
-- eval results
-
-## Running Locally
+## Run it
 
 ```bash
 npm install
 cp .env.example .env.local
-npm run dev
+npm run dev            # http://localhost:3000, in-memory data unless DATABASE_URL is set
+npm test               # unit and integration tests
+npm run eval           # 50 scenarios, deterministic policy regression
+npm run verify:trace   # decision timeline report
+npm run lint && npx tsc --noEmit && npm run build
 ```
 
-Postgres is optional:
+`npm run eval` reports `50/50` and `0 unsafe actions`. That is a **deterministic policy regression** over scripted scenarios: it says the policy engine still behaves as specified, not that a model, a conversation, or a live deployment is reliable. Reconciliation, approvals, tenant differences, and the `next_step` contract are covered by the Vitest suite rather than the eval scenarios.
 
-```bash
-npm run db:push
-npm run db:seed
-```
+Postgres is optional: set `DATABASE_URL` and run `npm run db:push`. Resetting a configured database (`db:seed`, `verify:db`, or any test or eval run against it) is refused unless `ALLOW_DESTRUCTIVE_DB_RESET=1`; use a disposable database.
 
-If `DATABASE_URL` is not set, the app uses the seeded in-memory repository so simulator, eval, trace verification, and tests still run.
+## Configuration
 
-## Scripts
+| Variable | Purpose |
+|---|---|
+| `BLAND_WEBHOOK_SECRET` | Value Bland sends in the `x-bland-webhook-secret` header. Required in production; the only accepted auth mechanism. |
+| `OPERATOR_API_SECRET` | Value for the `x-operator-secret` header on approve, reject, reconcile, retry, `/api/demo/*`, and `/api/actions/*`. Unset: open locally, 403 in production. |
+| `DATABASE_URL` | Postgres. Unset: in-memory. |
+| `EXTRACTION_MODE`, `OPENAI_*` | Optional LLM extraction. Deterministic by default; LLM output is validated and cannot authorize. |
 
-```bash
-npm install
-npm run dev
-npm run build
-npm run eval
-npm run eval:llm
-npm run verify:trace
-npm run verify:db
-npm test
-npm run db:seed
-```
+## Known limitations
 
-## Environment Variables
+- Operator routes are protected by one shared secret, not user authentication. Audit rows record the synthetic actor `demo_operator`.
+- The webhook secret is shared across customers and `customer_key` selects the tenant; per-tenant secrets are not implemented. Non-webhook callers that supply no customer key get the seeded demo tenant (Ventra).
+- The read-only UI pages (dashboard, call detail, approvals list) are unauthenticated; only the mutating routes are protected.
+- Approval expiry is not implemented. An action that dies mid-`executing` needs manual intervention.
+- Idempotency covers the modelled workflows, not exactly-once delivery in general. A negative reconciliation lookup is only as trustworthy as the downstream's read consistency.
+- The unique indexes added for idempotency are in the schema but have not been applied to the Neon database; run `npm run db:push`. The current code has not been re-run against Bland or Neon since the verified call.
+- No public deployment is maintained; the temporary one used for verification was deleted.
+- Deterministic extraction handles the scripted phrasings. Messy real transcripts are left to Bland's variable extraction, which is untested here.
 
-```txt
-EXTRACTION_MODE=deterministic
-OPENAI_API_KEY=
-OPENAI_MODEL=gpt-4.1-mini
-OPENAI_BASE_URL=https://api.openai.com/v1
-DATABASE_URL=
-BLAND_WEBHOOK_SECRET=
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-ENABLE_BLAND_INTEGRATION=false
-```
+## More
 
-## 90-Second Demo Script
-
-1. Say this is not a voice bot demo, it is the deployment harness around a voice agent.
-2. Show the simulator and run the valid material request.
-3. Show extraction, caller resolution, policy, created requisition, and timeline.
-4. Run a bypass or over-budget case and show safe blocking or approval routing.
-5. Open call detail and point to audit logs, webhook trace, and guardrails.
-6. End on the eval page and readiness report.
-
-More detailed walkthrough notes are in [docs/demo-script.md](/Users/vidithreddy/voice-agent-deployment-lab/docs/demo-script.md).
-
-## Security And Safety Notes
-
-See [docs/security-and-safety.md](/Users/vidithreddy/voice-agent-deployment-lab/docs/security-and-safety.md).
-
-The short version:
-
-- extraction does not authorize actions
-- Bland variables are validated but not trusted for permissions
-- unknown callers cannot mutate state
-- finance access is role-gated
-- over-budget actions route to approval
-- duplicate actions are blocked
-- all write actions are idempotent
-
-## Known Limitations
-
-- deterministic extraction is still the default review path
-- optional LLM extraction is supported but may not be exercised locally without an API key
-- Bland compatibility is webhook-level, not a full telecom deployment
-- follow-ups are stored as records, not sent through a live messaging provider
-- Postgres proof mode depends on `DATABASE_URL`
-
-## Next Steps
-
-- add real screenshots or a stable screenshot script
-- run LLM extraction eval in an environment with `OPENAI_API_KEY`
-- verify Postgres mode in a live configured environment
-- add customer-specific tenant config around the pathway contracts
+- [docs/PRD_V2.md](docs/PRD_V2.md) and [docs/PRE_BUILD_DECISIONS.md](docs/PRE_BUILD_DECISIONS.md): scope and locked decisions
+- [docs/Bland-integration.md](docs/Bland-integration.md): webhook contract and pathway setup
+- [docs/security-and-safety.md](docs/security-and-safety.md): threat model, idempotency, reconciliation, route protection
+- [docs/demo-script.md](docs/demo-script.md): 90-second walkthrough
+- `lib/actions/action-gateway.ts` is the single orchestration path used by the simulator, demo route, webhook, evals, and trace verification.

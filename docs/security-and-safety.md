@@ -36,18 +36,27 @@ This separation matters because neither an LLM nor Bland variables should ever d
 - Duplicate material requests are blocked.
 - Missing fields trigger clarification instead of best-guess mutation.
 - Approval bypass attempts are logged and blocked.
-- All write actions use idempotency keys.
+- Write actions use idempotency keys, and reuse of a key for a different request is refused.
 - Blocked and routed actions still generate audit traces.
 
 ## Idempotency Strategy
 
-All write-capable actions use an `idempotencyKey`:
+Every write-capable action is claimed by a persisted action request keyed by an idempotency key, and stores a fingerprint of the normalized request (intent plus extracted fields).
 
-- requisitions
-- approval requests
-- site escalations
+- Same key, same fingerprint: the existing result is replayed and nothing is written again.
+- Same key, different fingerprint: the request is blocked (`idempotency_key_conflict`, `handoff_to_human`, reason `IDEMPOTENCY_CONFLICT`). It is never replayed or executed, and the original record is untouched.
+- The Bland webhook uses `call_id` plus a hash of the fingerprint as the key, so one call can carry several distinct actions while redelivery of the same one replays.
+- In Postgres, unique indexes on `idempotency_key` for action requests, requisitions, approval requests, and site issues make the write itself atomic; a concurrent duplicate inserts nothing and reads back the existing row. Approval, rejection, and retry are compare-and-set transitions on the action request state, so two concurrent operators cannot both execute.
 
-This prevents repeated webhook delivery or repeated simulator runs from creating duplicate state.
+Scope: this covers the modelled workflow (material requests, approvals, escalations). It is not a general exactly-once guarantee. A process that dies while an action is `executing` leaves it in that state until an operator intervenes, and the mock ERP is simulated in the same database.
+
+## Reconciliation
+
+When a write's outcome is unknown, the action moves to `reconciliation_required` and cannot be retried. Reconciling queries the downstream (the mock ERP, by correlation key) and derives the result: found, so the action is `recovered` with no second write; not found, so a retry becomes allowed; unavailable, so `human_review_required`. Callers cannot supply the outcome. Retry re-checks downstream immediately before writing. A negative lookup is treated as evidence of no mutation, which is only as good as the downstream's read consistency; a real ERP integration would need to define that.
+
+## Operator And Demo Routes
+
+Approve, reject, reconcile, retry, `/api/demo/*`, and the legacy `/api/actions/*` routes require the `x-operator-secret` header to match `OPERATOR_API_SECRET` (constant-time comparison). With no secret set they are open in local development and return 403 in production. This is a single shared secret, not user authentication: audit rows record the synthetic actor `demo_operator`, never a named employee. The Bland webhook secret and the operator secret are separate.
 
 ## Audit Log Strategy
 
@@ -63,15 +72,11 @@ Write-side sub-actions also emit their own trace rows, such as requisition creat
 
 ## Webhook Verification
 
-`POST /api/bland/webhook` optionally checks `BLAND_WEBHOOK_SECRET`.
+`POST /api/bland/webhook` requires `x-bland-webhook-secret` to equal `BLAND_WEBHOOK_SECRET` (constant-time comparison). This is the header verified from a Bland Console Webhook node; no other header or signature scheme is accepted.
 
-If the secret is configured:
-
-- missing or incorrect secret -> request rejected
-
-If the secret is not configured:
-
-- local review still works without external dependencies
+- missing or incorrect secret: `401`
+- no secret configured: accepted outside production (local use and tests), rejected in production
+- `request_data.customer_key` must name a known customer configuration or the request is handed to a human without any action
 
 ## Finance And Sensitive Data Handling
 
@@ -87,7 +92,9 @@ Unauthorized callers receive a blocked response and audit trace, not partial pay
 - deterministic extraction can still misread messy real transcripts
 - LLM extraction is optional and not exercised in this environment without `OPENAI_API_KEY`
 - Bland variable ingestion is validated, but it still depends on the upstream pathway collecting the right fields
-- the Postgres path is implemented, but local proof depends on `DATABASE_URL`
+- Postgres proof depends on `DATABASE_URL`; memory mode remains a local fallback and is silent on a deployment without it
+- resetting a configured Postgres database (`db:seed`, `verify:db`, evals against Postgres) is refused unless `ALLOW_DESTRUCTIVE_DB_RESET=1`
+- approval expiry is not implemented
 
 ## Why This Matters For Enterprise Voice
 

@@ -1,6 +1,12 @@
 # Postgres Verification
 
-- Status: skipped
-- Reason: DATABASE_URL not set. Postgres verification skipped. In-memory fallback remains verified.
-- Reproduce: set `DATABASE_URL`, run `npm run db:push`, `npm run db:seed`, then `npm run verify:db`
+- Status: passed
+- Commands:
+  - `npx drizzle-kit push`
+  - `npm run db:seed`
+  - `npm run verify:db`
+- Interaction persisted: yes
+- Requisition rows found: 1
+- Policy decision: allowed
+- Limitations: this verifies repository persistence, not external telecom delivery.
 

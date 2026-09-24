@@ -1,0 +1,57 @@
+{
+  "checkedAt": "2026-09-15T16:37:57.660Z",
+  "mode": "read_only_neon_verification",
+  "expectedTablesFound": [
+    "action_requests",
+    "adapter_attempts",
+    "guardrail_events",
+    "requisitions",
+    "voice_interactions",
+    "webhook_events"
+  ],
+  "counts": {
+    "voice_interactions": 12,
+    "action_requests": 12,
+    "requisitions": 8,
+    "adapter_attempts": 14,
+    "webhook_events": 36,
+    "guardrail_events": 4
+  },
+  "directPreviewControlCallId": "direct-control-1789489442357",
+  "directPreviewControlPersistence": {
+    "interaction": [
+      {
+        "id": "direct-control-1789489442357",
+        "caller_phone": "+15550000001",
+        "intent": "create_material_request",
+        "action_attempted": "create_material_request",
+        "policy_decision": "allowed",
+        "outcome": "Created requisition req-58dd58f6-61f7-497e-95b6-16240c8c141e for 4 cement.",
+        "created_at": "2026-09-15T16:24:03.761Z"
+      }
+    ],
+    "actionRequests": [
+      {
+        "id": "action-request-095d8155-b835-45c2-bc0c-586cb3f939dc",
+        "action_name": "create_material_request",
+        "lifecycle_state": "succeeded",
+        "policy_decision": "allowed",
+        "approval_request_id": null,
+        "error_code": null,
+        "created_at": "2026-09-15T16:24:03.664Z",
+        "updated_at": "2026-09-15T16:24:03.740Z"
+      }
+    ],
+    "requisitions": [
+      {
+        "id": "req-58dd58f6-61f7-497e-95b6-16240c8c141e",
+        "status": "draft",
+        "total_cost": "48.00",
+        "needed_by": "2026-05-09"
+      }
+    ]
+  },
+  "notes": [
+    "Read-only verification; did not run resetAndSeed or mutate database."
+  ]
+}
