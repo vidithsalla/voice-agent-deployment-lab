@@ -5,7 +5,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Voice Agent Deployment Lab",
-  description: "A simulator-first deployment harness for safe enterprise voice actions."
+  description: "Deployment gateway for safe enterprise voice actions."
 };
 
 const navItems = [
@@ -21,22 +21,13 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en">
       <body>
         <div className="shell">
-          <header
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              gap: 16,
-              flexWrap: "wrap",
-              marginBottom: 28
-            }}
-          >
-            <Link href="/" style={{ fontSize: "1.05rem", fontWeight: 700 }}>
+          <header className="nav-bar" style={{ marginBottom: 24 }}>
+            <Link href="/" style={{ fontSize: "1.02rem", fontWeight: 750 }}>
               Voice Agent Deployment Lab
             </Link>
-            <nav style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+            <nav style={{ display: "flex", gap: 6, flexWrap: "wrap" }} aria-label="Main navigation">
               {navItems.map((item) => (
-                <Link key={item.href} href={item.href} className="subtle">
+                <Link key={item.href} href={item.href} className="nav-link">
                   {item.label}
                 </Link>
               ))}
