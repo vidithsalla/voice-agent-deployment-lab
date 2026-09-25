@@ -4,7 +4,9 @@ Bland handles the conversation. VoiceLab governs whether that conversation can b
 
 The domain is a construction ERP (material requests, stock, purchase orders, vendor payments, site issues). The ERP is a mock.
 
-**External verification:** the current hardened VoiceLab V2 was verified through a real Bland Console Tools / Custom API execution with authenticated webhook handling and Neon-backed persistence. Bland called a temporary public deployment with `x-bland-webhook-secret`, got `status=success`, created a requisition in Neon, and an identical replay returned the same requisition without creating a duplicate. The temporary Bland, Vercel, and Neon resources were deleted afterwards. Older evidence also records a real Bland Webhook-node call against an earlier V2 build. Not verified: live phone calls, full Pathway conversational routing, Bland Agent Testing, a real ERP, production traffic, or a maintained public deployment. Evidence and its limits: [docs/external-evidence/](docs/external-evidence/README.md).
+**Live demo:** https://voice-agent-deployment-lab.vercel.app
+
+**External verification:** the current hardened VoiceLab V2 was verified through a real Bland Console Tools / Custom API execution with authenticated webhook handling and Neon-backed persistence. Bland called a temporary public deployment with `x-bland-webhook-secret`, got `status=success`, created a requisition in Neon, and an identical replay returned the same requisition without creating a duplicate. The temporary Bland, Vercel, and Neon resources were deleted afterwards. Older evidence also records a real Bland Webhook-node call against an earlier V2 build. Not verified: live phone calls, full Pathway conversational routing, Bland Agent Testing, a real ERP, or production traffic. The maintained public demo is separate from the temporary environment used for recorded external verification. Evidence and its limits: [docs/external-evidence/](docs/external-evidence/README.md).
 
 ![Successful action trace](docs/screenshots/01-successful-action-trace.png)
 
@@ -77,7 +79,7 @@ Postgres is optional: set `DATABASE_URL` and run `npm run db:push`. Resetting a 
 - The read-only UI pages (dashboard, call detail, approvals list) are unauthenticated; only the mutating routes are protected.
 - Approval expiry is not implemented. An action that dies mid-`executing` needs manual intervention.
 - Idempotency covers the modelled workflows, not exactly-once delivery in general. A negative reconciliation lookup is only as trustworthy as the downstream's read consistency.
-- No public deployment is maintained; the temporary one used for verification was deleted.
+- A public demo deployment is maintained for inspection at `https://voice-agent-deployment-lab.vercel.app`; it is not a production/customer deployment. The temporary environment used for the recorded Bland verification was deleted after that verification.
 - Deterministic extraction handles the scripted phrasings. Messy real transcripts are left to Bland's variable extraction, which is untested here.
 
 ## More
