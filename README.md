@@ -4,7 +4,7 @@ Bland handles the conversation. VoiceLab governs whether that conversation can b
 
 The domain is a construction ERP (material requests, stock, purchase orders, vendor payments, site issues). The ERP is a mock.
 
-**External verification:** verified against a real Bland Webhook node with authenticated execution and Neon-backed persistence. A Bland Console Webhook node called a temporary public deployment and got `status=success`, `next_step.directive=continue`; the resulting action and requisition were read back from Neon. That deployment and Pathway were deleted afterwards. Not verified: live phone calls, Pathway routing on directives other than `continue`, Bland Agent Testing, a real ERP, production traffic. Evidence and its limits: [docs/external-evidence/](docs/external-evidence/README.md).
+**External verification:** the current hardened VoiceLab V2 was verified through a real Bland Console Tools / Custom API execution with authenticated webhook handling and Neon-backed persistence. Bland called a temporary public deployment with `x-bland-webhook-secret`, got `status=success`, created a requisition in Neon, and an identical replay returned the same requisition without creating a duplicate. The temporary Bland, Vercel, and Neon resources were deleted afterwards. Older evidence also records a real Bland Webhook-node call against an earlier V2 build. Not verified: live phone calls, full Pathway conversational routing, Bland Agent Testing, a real ERP, production traffic, or a maintained public deployment. Evidence and its limits: [docs/external-evidence/](docs/external-evidence/README.md).
 
 ![Successful action trace](docs/screenshots/01-successful-action-trace.png)
 
@@ -43,7 +43,7 @@ Every step is recorded as an adapter attempt and audit row, and shown in the cal
 |---|---|
 | Webhook auth, policy, tenant config, idempotency, approvals, reconciliation state machine, audit, `next_step` | The ERP (rows in the same database) and its failure modes |
 | Neon/Postgres persistence and unique-index idempotency (in-memory fallback for local runs) | Follow-up messages (stored, not sent) |
-| One real Bland Webhook-node call (see evidence) | Phone calls: none were placed |
+| Real Bland Console Tools / Custom API execution against the hardened runtime; older real Webhook-node evidence (see evidence) | Phone calls: none were placed |
 
 ## Run it
 
@@ -77,7 +77,6 @@ Postgres is optional: set `DATABASE_URL` and run `npm run db:push`. Resetting a 
 - The read-only UI pages (dashboard, call detail, approvals list) are unauthenticated; only the mutating routes are protected.
 - Approval expiry is not implemented. An action that dies mid-`executing` needs manual intervention.
 - Idempotency covers the modelled workflows, not exactly-once delivery in general. A negative reconciliation lookup is only as trustworthy as the downstream's read consistency.
-- The unique indexes added for idempotency are in the schema but have not been applied to the Neon database; run `npm run db:push`. The current code has not been re-run against Bland or Neon since the verified call.
 - No public deployment is maintained; the temporary one used for verification was deleted.
 - Deterministic extraction handles the scripted phrasings. Messy real transcripts are left to Bland's variable extraction, which is untested here.
 
